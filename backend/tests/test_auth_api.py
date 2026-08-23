@@ -35,6 +35,12 @@ def test_register_sets_httponly_session_cookies():
     assert any("shakti_refresh=" in value and "HttpOnly" in value for value in cookies)
     assert any("shakti_csrf=" in value and "HttpOnly" not in value for value in cookies)
 
+def test_refresh_cookie_is_available_through_production_api_proxy():
+    response = register()
+    refresh_cookie = next(value for value in response.headers.get_list("set-cookie") if value.startswith("shakti_refresh="))
+    assert "Path=/" in refresh_cookie
+    assert "Path=/auth" not in refresh_cookie
+
 def test_duplicate_email_is_rejected():
     email = f"duplicate-{uuid4()}@example.com"
     assert register(email=email).status_code == 201

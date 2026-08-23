@@ -37,7 +37,9 @@ def issue_session(response: Response, db: Session, user: User, remember: bool = 
     refresh = new_refresh_token(); csrf = secrets.token_urlsafe(24); days = 30 if remember else 7
     db.add(RefreshSession(user_id=user.id, token_hash=token_hash(refresh), csrf_token=csrf, expires_at=datetime.now(timezone.utc) + timedelta(days=days))); db.commit()
     response.set_cookie("shakti_access", create_access_token(user.id), httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=900, path="/")
-    response.set_cookie("shakti_refresh", refresh, httponly=True, secure=COOKIE_SECURE, samesite="strict", max_age=days * 86400, path="/auth")
+    # Production exposes this route as /api/auth/* through Nginx, so the
+    # refresh cookie must be valid for both direct and proxied API paths.
+    response.set_cookie("shakti_refresh", refresh, httponly=True, secure=COOKIE_SECURE, samesite="strict", max_age=days * 86400, path="/")
     response.set_cookie("shakti_csrf", csrf, httponly=False, secure=COOKIE_SECURE, samesite="strict", max_age=days * 86400, path="/")
 
 @router.post("/register", status_code=201)
@@ -84,7 +86,7 @@ def logout(response: Response, db: Session = Depends(get_db), refresh_token: str
     if refresh_token:
         session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == token_hash(refresh_token)))
         if session: session.revoked = True; db.commit()
-    for name, path in [("shakti_access", "/"), ("shakti_refresh", "/auth"), ("shakti_csrf", "/")]: response.delete_cookie(name, path=path)
+    for name in ("shakti_access", "shakti_refresh", "shakti_csrf"): response.delete_cookie(name, path="/")
     return {"status": "signed_out"}
 
 def current_user(request: Request, db: Session = Depends(get_db)) -> User:
