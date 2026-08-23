@@ -56,8 +56,21 @@ async def send_sms(client: httpx.AsyncClient, recipient: str | None, body: str) 
         response.raise_for_status()
         data = response.json()
         return {"channel": "sms", "status": "queued", "provider_id": data.get("sid"), "message": "SMS queued by Twilio."}
-    except httpx.HTTPError:
-        return {"channel": "sms", "status": "failed", "message": "Twilio rejected the SMS. Check the number and provider logs."}
+    except httpx.HTTPStatusError as exc:
+        provider_message = ""
+        try:
+            provider_message = str(exc.response.json().get("message", "")).strip()
+        except (ValueError, AttributeError):
+            pass
+        if exc.response.status_code == 400 and "unverified" in provider_message.lower():
+            message = "Twilio trial accounts can send only to verified recipient numbers. Verify this number in Twilio or copy the invitation link instead."
+        elif exc.response.status_code in (401, 403):
+            message = "Twilio authentication or sender configuration was rejected. Check the Railway Twilio credentials."
+        else:
+            message = provider_message[:180] or "Twilio rejected the SMS. Verify the international number and sender configuration."
+        return {"channel": "sms", "status": "failed", "message": message, "provider_status": exc.response.status_code}
+    except httpx.RequestError:
+        return {"channel": "sms", "status": "failed", "message": "Twilio could not be reached. Copy or share the invitation link instead."}
 
 
 async def send_email(client: httpx.AsyncClient, recipient: str | None, subject: str, text: str, email_html: str, idempotency_key: str) -> dict[str, Any]:

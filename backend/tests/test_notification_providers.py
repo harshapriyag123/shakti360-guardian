@@ -29,6 +29,25 @@ def test_twilio_request_contract(monkeypatch):
     assert captured["authorization"].startswith("Basic ")
 
 
+def test_twilio_trial_rejection_has_actionable_fallback(monkeypatch):
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "AC123")
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "secret")
+    monkeypatch.setenv("TWILIO_FROM_NUMBER", "+15550001111")
+
+    def handler(request: httpx.Request):
+        return httpx.Response(400, json={"code": 21608, "message": "The number is unverified"})
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await send_sms(client, "+15550002222", "Safety update")
+
+    result = asyncio.run(run())
+    assert result["status"] == "failed"
+    assert result["provider_status"] == 400
+    assert "trial accounts" in result["message"]
+    assert "copy the invitation link" in result["message"]
+
+
 def test_resend_request_contract(monkeypatch):
     monkeypatch.setenv("RESEND_API_KEY", "re_test")
     monkeypatch.setenv("RESEND_FROM_EMAIL", "Guardian <guardian@example.com>")
