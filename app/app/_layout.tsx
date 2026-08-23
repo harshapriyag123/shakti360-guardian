@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Text, View } from "react-native";
@@ -11,6 +12,9 @@ function BrandHeader({ title }: { title: string }) {
   return <View accessibilityRole="header" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Image source={require("../public/shakti360-icon.png")} accessibilityLabel="Shakti360 Guardian logo" style={{ width: 34, height: 34, borderRadius: 10 }} resizeMode="cover" /><View><Text style={{ color: colors.primary, fontSize: 10, lineHeight: 12, fontWeight: "900", letterSpacing: 1 }}>SHAKTI360</Text><Text numberOfLines={1} style={{ color: colors.ink, fontSize: 16, lineHeight: 19, fontWeight: "900", maxWidth: 210 }}>{title}</Text></View></View>;
 }
 export default function Layout() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <View style={{ flex: 1, backgroundColor: colors.canvas }} />;
   return <AppErrorBoundary><StatusBar style="dark" /><Tabs screenOptions={({ route }) => ({ headerTitle: () => <BrandHeader title={titles[route.name] || "Shakti360 Guardian"} />, headerTitleAlign: "center", headerShadowVisible: false, headerStyle: { backgroundColor: colors.canvas }, headerTintColor: colors.ink, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.muted, tabBarLabelStyle: { fontSize: 11, fontWeight: "700" }, tabBarStyle: { height: 66, paddingTop: 7, paddingBottom: 8, borderTopColor: colors.border, backgroundColor: "white" }, tabBarIcon: ({ color, size }) => <Ionicons name={icons[route.name] || "ellipse"} color={color} size={size} /> })}>
     <Tabs.Screen name="index" options={{ title: "Home", headerShown: false }} />
     <Tabs.Screen name="journey" options={{ title: "Journey" }} />
