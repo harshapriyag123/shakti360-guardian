@@ -110,11 +110,11 @@ Enable public HTTPS access for both `web` and `api`. When either public URL chan
 
 The root [`railway.json`](./railway.json) deploys the FastAPI backend from this monorepo through `Dockerfile.railway`. Keep the backend Railway service Root Directory empty (`/`) so Railway reads that file. It installs `backend/requirements.txt`, starts Uvicorn using Railway's dynamic `$PORT`, and checks `/health`.
 
-For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. Set `EXPO_PUBLIC_API_URL` to the backend's public HTTPS URL before building the PWA.
+For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. The production bundle uses same-origin `/api`; Nginx proxies it privately to `http://api.railway.internal:8000`, so no frontend build variable or public backend domain is required. Name the Railway backend service exactly `api`.
 
 The frontend deploy command starts Nginx directly. Do not configure `npx expo start`, `npm start`, or another Node start override in Railway; Node is present only in the build stage and is intentionally absent from the production image.
 The Nginx configuration is rendered at container startup and listens on Railway's dynamic `$PORT` (with port 80 as the local Docker default), so Railway's `/` healthcheck and public domain target the same listener.
-The production Docker build deliberately fails if `EXPO_PUBLIC_API_URL` is missing or is not HTTPS. This prevents a deployed browser bundle from silently calling `localhost:8000` on each user's device.
+The production Docker build defaults `EXPO_PUBLIC_API_URL` to `/api` and accepts an explicit public HTTPS override when needed. It never silently embeds `localhost:8000` in a production browser bundle.
 
 Production environment variables:
 

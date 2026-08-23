@@ -6,6 +6,8 @@ services:
         EXPO_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "8080:80"
+    environment:
+      API_UPSTREAM: http://api:8000
     depends_on:
       - api
   api:
