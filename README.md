@@ -78,6 +78,34 @@ docker compose up --build
 - API: `http://localhost:8000`
 - API docs: `http://localhost:8000/docs`
 
+### Zerops
+
+The repository root contains [`zerops.yaml`](./zerops.yaml) with two monorepo setups:
+
+- `web`: Node.js 22 build followed by Zerops native static hosting
+- `api`: Python 3.12 FastAPI runtime on port 8000
+
+Create Zerops services named `web`, `api`, and `db` (PostgreSQL), then set these project variables before the first build:
+
+```text
+API_PUBLIC_URL=https://your-api-public-domain
+WEB_PUBLIC_URL=https://your-web-public-domain
+```
+
+Set these as secret runtime variables on the `api` service:
+
+```text
+JWT_SECRET=<at-least-32-random-characters>
+TWILIO_ACCOUNT_SID=<optional-for-sms>
+TWILIO_AUTH_TOKEN=<optional-for-sms>
+TWILIO_FROM_NUMBER=<optional-for-sms>
+TWILIO_MESSAGING_SERVICE_SID=<optional-alternative-sender>
+RESEND_API_KEY=<optional-for-email>
+RESEND_FROM_EMAIL=Shakti360 Guardian <guardian@your-verified-domain.com>
+```
+
+Enable public HTTPS access for both `web` and `api`. When either public URL changes, update the project variables and redeploy both services because Expo embeds the API URL during the frontend build. Zerops supplies `${db_connectionString}` from the PostgreSQL service named `db`; no database password is committed.
+
 Production environment variables:
 
 - `EXPO_PUBLIC_API_URL`: public HTTPS API origin embedded during the web build

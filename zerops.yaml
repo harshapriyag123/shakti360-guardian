@@ -1,0 +1,63 @@
+zerops:
+  # Create/connect this setup to a Zerops Static service named "web".
+  - setup: web
+    build:
+      base: nodejs@22
+      envVariables:
+        # Set API_PUBLIC_URL as a Zerops project variable before deploying.
+        # Expo embeds this public HTTPS URL into the browser bundle at build time.
+        EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL}
+        EXPO_PUBLIC_APP_URL: ${WEB_PUBLIC_URL}
+        NODE_ENV: production
+      buildCommands:
+        - cd app && npm ci
+        - cd app && npm run typecheck
+        - cd app && npm run build:web
+      deployFiles:
+        - app/dist/~
+    run:
+      os: alpine
+      base: static
+      healthCheck:
+        httpGet:
+          port: 80
+          path: /
+      routing:
+        headers:
+          - for: "/*"
+            values:
+              X-Content-Type-Options: "'nosniff' always"
+              Referrer-Policy: "'no-referrer' always"
+              Permissions-Policy: "'camera=(), microphone=(), geolocation=(self)' always"
+          - for: "/sw.js"
+            values:
+              Cache-Control: "'no-cache, no-store, must-revalidate' always"
+
+  # Create/connect this setup to a Zerops Python service named "api".
+  - setup: api
+    build:
+      base: python@3.12
+      deployFiles:
+        - backend/~
+      addToRunPrepare:
+        - backend/requirements.txt
+    run:
+      base: python@3.12
+      envVariables:
+        APP_ENV: production
+        DATABASE_URL: ${db_connectionString}
+        CORS_ORIGINS: ${WEB_PUBLIC_URL}
+        GUARDIAN_INVITE_BASE_URL: ${WEB_PUBLIC_URL}/guardian-invite
+        RESOURCE_PROVIDER: live
+        PYTHONUNBUFFERED: "1"
+      prepareCommands:
+        - python3 -m pip install --no-cache-dir --ignore-installed -r backend/requirements.txt
+      ports:
+        - port: 8000
+          protocol: TCP
+          httpSupport: true
+      start: python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips="*"
+      healthCheck:
+        httpGet:
+          port: 8000
+          path: /ready
