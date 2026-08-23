@@ -2,17 +2,19 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile.railway",
+    "dockerfilePath": "Dockerfile.fullstack",
     "watchPatterns": [
+      "/app/**",
       "/backend/**",
-      "/Dockerfile.railway",
+      "/Dockerfile.fullstack",
+      "/start-fullstack.sh",
       "/railway.json",
       "/.python-version"
     ]
   },
   "deploy": {
-    "healthcheckPath": "/health",
-    "healthcheckTimeout": 120,
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }

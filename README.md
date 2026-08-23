@@ -108,9 +108,9 @@ Enable public HTTPS access for both `web` and `api`. When either public URL chan
 
 ### Railway
 
-Recommended hackathon deployment: use the single-service full-stack image. Set the Railway service Root Directory to `/` (or empty) and Config File Path to `/railway.fullstack.json`. `Dockerfile.fullstack` builds the PWA, runs FastAPI privately on loopback port 8000, serves Nginx on Railway's `$PORT`, and proxies same-origin `/api` requests internally. This avoids CORS and cross-service DNS entirely.
+Recommended hackathon deployment: use the single-service full-stack image. Set the Railway service Root Directory to `/` (or empty). The default root `/railway.json` selects `Dockerfile.fullstack`, which builds the PWA, runs FastAPI privately on loopback port 8000, serves Nginx on Railway's `$PORT`, and proxies same-origin `/api` requests internally. This avoids CORS and cross-service DNS entirely. Clear any Config File Path override left over from an older deployment.
 
-The root [`railway.json`](./railway.json) deploys the FastAPI backend from this monorepo through `Dockerfile.railway`. Keep the backend Railway service Root Directory empty (`/`) so Railway reads that file. It installs `backend/requirements.txt`, starts Uvicorn using Railway's dynamic `$PORT`, and checks `/health`.
+The root [`railway.json`](./railway.json) deploys the complete application from this monorepo through `Dockerfile.fullstack`. Keep the Railway service Root Directory empty (`/`) so Railway reads that file.
 
 For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. The production bundle uses same-origin `/api`; Nginx proxies it privately to `http://api.railway.internal:8000`, so no frontend build variable or public backend domain is required. Name the Railway backend service exactly `api`.
 
