@@ -16,6 +16,7 @@ export function PWAInstall() {
   }, []);
   const androidUrl = process.env.EXPO_PUBLIC_ANDROID_DOWNLOAD_URL;
   const iosUrl = process.env.EXPO_PUBLIC_IOS_DOWNLOAD_URL;
+  const hasNativeRelease = Boolean(androidUrl || iosUrl);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -38,17 +39,17 @@ export function PWAInstall() {
       if (choice.outcome === "accepted") setPrompt(null);
       return;
     }
-    setNotice(device === "ios" ? "In Safari, tap Share, then Add to Home Screen." : device === "android" ? "Open the browser menu and tap Install app or Add to Home screen." : "Open your browser menu and choose Install Shakti360 or Create shortcut.");
+    setNotice(device === "ios" ? "In Safari: tap Share ⎋, choose Add to Home Screen, then tap Add." : device === "android" ? "In Chrome: tap ⋮, choose Install app or Add to Home screen, then confirm." : "In Chrome or Edge: click the install icon in the address bar. You can also open the ⋮ menu and choose Install Shakti360.");
   }
 
   return <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 14, backgroundColor: "white", gap: 12 }}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><Ionicons name="download-outline" size={25} color={colors.primary} /><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: "900" }}>Get Shakti360 on this device</Text><Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Install the secure web app now, or choose a native release.</Text></View><Pressable accessibilityRole="button" onPress={() => setExpanded(value => !value)} style={{ padding: 10 }}><Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={21} color={colors.primary} /></Pressable></View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><Ionicons name="download-outline" size={25} color={colors.primary} /><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: "900" }}>Install Shakti360</Text><Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Add the web app to this {device === "ios" ? "iPhone or iPad" : device === "android" ? "Android device" : "computer"}—no app store required.</Text></View><Pressable accessibilityRole="button" onPress={() => setExpanded(value => !value)} style={{ padding: 10 }}><Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={21} color={colors.primary} /></Pressable></View>
     {expanded ? <View style={{ gap: 9 }}>
-      <Pressable accessibilityRole="button" onPress={installWeb} style={{ backgroundColor: colors.primary, borderRadius: 13, padding: 13 }}><Text style={{ color: "white", fontWeight: "900", textAlign: "center" }}>Install web app {device === "ios" ? "on iPhone/iPad" : device === "android" ? "on Android" : "on this computer"}</Text></Pressable>
-      <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        <Pressable accessibilityRole="link" disabled={!androidUrl} onPress={() => androidUrl && Linking.openURL(androidUrl)} style={{ flex: 1, minWidth: 135, borderWidth: 1, borderColor: colors.border, borderRadius: 13, padding: 12, opacity: androidUrl ? 1 : .55 }}><Text style={{ color: colors.ink, fontWeight: "800", textAlign: "center" }}>Android APK</Text><Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 3 }}>{androidUrl ? "Download signed build" : "Release not published"}</Text></Pressable>
-        <Pressable accessibilityRole="link" disabled={!iosUrl} onPress={() => iosUrl && Linking.openURL(iosUrl)} style={{ flex: 1, minWidth: 135, borderWidth: 1, borderColor: colors.border, borderRadius: 13, padding: 12, opacity: iosUrl ? 1 : .55 }}><Text style={{ color: colors.ink, fontWeight: "800", textAlign: "center" }}>iPhone / iPad</Text><Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 3 }}>{iosUrl ? "Open signed release" : "Release not published"}</Text></Pressable>
-      </View>
+      <Pressable accessibilityRole="button" onPress={installWeb} style={{ backgroundColor: colors.primary, borderRadius: 13, padding: 13 }}><Text style={{ color: "white", fontWeight: "900", textAlign: "center" }}>{prompt ? "Install Shakti360 now" : "Show installation steps"}</Text></Pressable>
+      {hasNativeRelease ? <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+        {androidUrl ? <Pressable accessibilityRole="link" onPress={() => Linking.openURL(androidUrl)} style={{ flex: 1, minWidth: 135, borderWidth: 1, borderColor: colors.border, borderRadius: 13, padding: 12 }}><Text style={{ color: colors.ink, fontWeight: "800", textAlign: "center" }}>Download Android APK</Text><Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 3 }}>Signed native release</Text></Pressable> : null}
+        {iosUrl ? <Pressable accessibilityRole="link" onPress={() => Linking.openURL(iosUrl)} style={{ flex: 1, minWidth: 135, borderWidth: 1, borderColor: colors.border, borderRadius: 13, padding: 12 }}><Text style={{ color: colors.ink, fontWeight: "800", textAlign: "center" }}>Open iPhone / iPad release</Text><Text style={{ color: colors.muted, fontSize: 11, textAlign: "center", marginTop: 3 }}>Signed App Store or TestFlight build</Text></Pressable> : null}
+      </View> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={{ color: colors.primaryDark, fontSize: 12, lineHeight: 18 }}>{notice}</Text> : null}
     </View> : null}
   </View>;
