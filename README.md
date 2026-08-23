@@ -1,177 +1,258 @@
 # Shakti360 Guardian
 
-Privacy-first, battery-aware, installable personal-safety PWA for DoraHacks 2.0.
+> Personal safety without permanent surveillance.
 
-## Core winning features
-- Installable responsive PWA plus iOS and Android from one Expo codebase
-- Journey Guardian with event-driven safety sessions
-- Trusted Circle + escalation policy
-- Nearby hospitals / police / pharmacies on map
-- Battery Guardian with low-power modes
-- Cyber Guardian for suspicious message analysis
-- Evidence Vault + incident timeline
-- Privacy Guardian
-- Offline/degraded-mode friendly architecture
-- Multilingual-ready UI
-- FastAPI backend with deterministic safety engine
+Shakti360 is an installable, privacy-first safety platform that helps a person prepare for a journey, stay connected to people they trust, find nearby support, recognize suspicious messages, and document incidents. It combines an Expo web/PWA experience with a FastAPI safety engine in one Railway deployment.
 
-> Important: Shakti360 does not claim to predict crime or guarantee safety.
-> AI assists with interpretation and organization; critical escalation logic stays deterministic.
+**Live app:** [shakti360-guardian-production.up.railway.app](https://shakti360-guardian-production.up.railway.app)
 
-## Quick start
+## Why it can win
 
-### Backend
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+Most safety products ask for continuous access and promise certainty they cannot provide. Shakti360 takes the opposite approach:
+
+- **Purpose-bound protection:** journey and location-sharing sessions end when their purpose ends.
+- **Human-controlled escalation:** deterministic rules surface options; the system never claims to contact emergency services automatically.
+- **Trusted Guardian Circle:** users choose who receives journey, missed check-in, SOS, and temporary-location updates.
+- **Real delivery adapters:** Twilio SMS and Resend email return truthful queued, failed, or unconfigured states.
+- **Battery-aware operation:** the Battery Guardian adapts sampling policy instead of assuming unlimited GPS use.
+- **Resilient PWA:** installable across desktop, Android, iPhone, and iPad with an offline shell and fresh network-first pages.
+- **Explainable assistance:** cyber, context, privacy, readiness, evidence, and pattern tools show their reasoning without pretending to predict crime.
+
+## Judge-ready demo
+
+1. Register or sign in and land on the authenticated dashboard.
+2. Add a trusted guardian, then copy or share the 24-hour invitation.
+3. Start a timed journey and show the battery policy decision.
+4. Trigger a missed check-in or SafeWord and inspect deterministic escalation.
+5. End the journey and open its locally stored privacy receipt.
+6. Find nearby hospitals, clinics, pharmacies, and police using live OpenStreetMap data with a bounded fallback.
+7. Demonstrate the Scam Scanner, Evidence Vault, Safety Readiness, and Impact dashboard.
+8. Install the PWA from the browser and reopen it in standalone mode.
+
+## System design
+
+```text
+Browser / installed PWA
+        │ same-origin HTTPS
+        ▼
+Railway container :$PORT
+        │
+        ├── Nginx ─────────────► Expo static web application
+        │
+        └── /api/* ────────────► FastAPI on 127.0.0.1:8000
+                                      │
+                                      ├── PostgreSQL or SQLite fallback
+                                      ├── Twilio SMS
+                                      ├── Resend email
+                                      └── OpenStreetMap / Overpass
 ```
 
-To enable real Guardian Circle delivery locally, copy `backend/.env.example` to `backend/.env`, add your Twilio and Resend secrets, then load it when starting the API:
+The browser never calls `localhost`, crosses origins, or depends on Railway private DNS. Nginx strips the public `/api` prefix and forwards requests to FastAPI within the same container.
+
+## Working product surface
+
+### Protection
+
+- Timed safety journeys, check-ins, explicit SOS, cancellation, and SafeWord
+- Battery policy and deterministic escalation engine
+- Guardian permissions and expiring invitation links
+- Temporary-session language and privacy receipts
+
+### Assistance
+
+- Live nearby-support lookup with a fast, labeled fallback
+- Suspicious-message analysis
+- Context fusion, privacy review, and safety-readiness assessment
+- Incident documentation, evidence summaries, and pattern insights
+
+### Trust and operations
+
+- Argon2 password hashing
+- Short-lived access tokens and revocable server-side refresh sessions
+- HttpOnly secure cookies and CSRF protection
+- PostgreSQL URL normalization with safe startup fallback
+- Request IDs, no-store API responses, bounded upstream timeouts, and explicit provider status
+- PWA cache upgrades that do not strand users on old route bundles
+
+## Verified status
+
+The repository includes automated unit, policy, API, authentication, database, and notification-contract tests plus a reusable production smoke test.
+
+```text
+66 local backend tests passing
+35 application routes registered
+36 live Railway operations passing
+Frontend TypeScript passing
+Production Expo/PWA export passing
+```
+
+Run the live smoke test:
 
 ```powershell
 cd backend
-Copy-Item .env.example .env
-# Edit .env without committing it
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000 --env-file .env
+.\.venv\Scripts\python.exe scripts\smoke_api.py https://shakti360-guardian-production.up.railway.app/api
 ```
 
-Use Python 3.12. The repository `.python-version`, backend container, and CI all target 3.12 so `pydantic-core` installs from a Windows wheel rather than compiling locally.
+The smoke test creates disposable records but deliberately uses no phone number or email address, so it never sends a real notification.
 
-### App
-```bash
+## Local development
+
+Requirements: Python 3.12 and Node.js 22.
+
+### FastAPI
+
+```powershell
+cd backend
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+API documentation: `http://127.0.0.1:8000/docs`
+
+### Expo app
+
+```powershell
 cd app
-npm install
+npm ci
+$env:EXPO_PUBLIC_API_URL="http://127.0.0.1:8000"
 npx expo start
 ```
 
-Set:
-```bash
-EXPO_PUBLIC_API_URL=http://localhost:8000
-```
-
-For a real phone on the same Wi‑Fi, replace localhost with your laptop LAN IP.
-
-### Production web/PWA
-
-Requires Node 22. The export creates statically rendered HTML routes, the web manifest, offline fallback, and a Workbox-generated service worker:
-
-```bash
-cd app
-npm ci
-EXPO_PUBLIC_API_URL=https://api.example.com npm run build:web
-```
-
-Deploy the `app/dist/` directory to any static HTTPS host. HTTPS is required for service workers and browser geolocation outside localhost. Do not cache API responses at the CDN.
-
-The service worker caches versioned application-shell assets only. It does not cache private API responses or Overpass requests. Offline mode cannot confirm guardian delivery, live resources, or server synchronization.
-
-### Docker
-
-```bash
-docker compose up --build
-```
-
-- PWA: `http://localhost:8080`
-- API: `http://localhost:8000`
-- API docs: `http://localhost:8000/docs`
-
-### Zerops
-
-The repository root contains [`zerops.yaml`](./zerops.yaml) with two monorepo setups:
-
-- `web`: Node.js 22 build followed by Zerops native static hosting
-- `api`: Python 3.12 FastAPI runtime on port 8000
-
-Create Zerops services named `web`, `api`, and `db` (PostgreSQL), then set these project variables before the first build:
-
-```text
-API_PUBLIC_URL=https://your-api-public-domain
-WEB_PUBLIC_URL=https://your-web-public-domain
-```
-
-Set these as secret runtime variables on the `api` service:
-
-```text
-JWT_SECRET=<at-least-32-random-characters>
-TWILIO_ACCOUNT_SID=<optional-for-sms>
-TWILIO_AUTH_TOKEN=<optional-for-sms>
-TWILIO_FROM_NUMBER=<optional-for-sms>
-TWILIO_MESSAGING_SERVICE_SID=<optional-alternative-sender>
-RESEND_API_KEY=<optional-for-email>
-RESEND_FROM_EMAIL=Shakti360 Guardian <guardian@your-verified-domain.com>
-```
-
-Enable public HTTPS access for both `web` and `api`. When either public URL changes, update the project variables and redeploy both services because Expo embeds the API URL during the frontend build. Zerops supplies `${db_connectionString}` from the PostgreSQL service named `db`; no database password is committed.
-
-### Railway
-
-Recommended hackathon deployment: use the single-service full-stack image. Set the Railway service Root Directory to `/` (or empty). The default root `/railway.json` selects `Dockerfile.fullstack`, which builds the PWA, runs FastAPI privately on loopback port 8000, serves Nginx on Railway's `$PORT`, and proxies same-origin `/api` requests internally. This avoids CORS and cross-service DNS entirely. Clear any Config File Path override left over from an older deployment.
-
-The root [`railway.json`](./railway.json) deploys the complete application from this monorepo through `Dockerfile.fullstack`. Keep the Railway service Root Directory empty (`/`) so Railway reads that file.
-
-For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. The production bundle uses same-origin `/api`; Nginx proxies it privately to `http://api.railway.internal:8000`, so no frontend build variable or public backend domain is required. Name the Railway backend service exactly `api`.
-
-The frontend deploy command starts Nginx directly. Do not configure `npx expo start`, `npm start`, or another Node start override in Railway; Node is present only in the build stage and is intentionally absent from the production image.
-The Nginx configuration is rendered at container startup and listens on Railway's dynamic `$PORT` (with port 80 as the local Docker default), so Railway's `/` healthcheck and public domain target the same listener.
-The production Docker build defaults `EXPO_PUBLIC_API_URL` to `/api` and accepts an explicit public HTTPS override when needed. It never silently embeds `localhost:8000` in a production browser bundle.
-
-Production environment variables:
-
-- `EXPO_PUBLIC_API_URL`: public HTTPS API origin embedded during the web build
-- `CORS_ORIGINS`: comma-separated allowed web origins
-- `DATABASE_URL`: SQLAlchemy URL; SQLite is the local fallback and Compose uses PostgreSQL
-- `JWT_SECRET`: strong random signing secret; required before public deployment
-- `OVERPASS_ENDPOINT`: planned configurable nearby-resource endpoint; current provider uses the documented public endpoint
-- `GUARDIAN_INVITE_BASE_URL`: public PWA invitation URL, for example `https://app.example.com/guardian-invite`
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID`: real Guardian Circle SMS delivery
-- `RESEND_API_KEY` and `RESEND_FROM_EMAIL`: real Guardian Circle email delivery; the sender domain must be verified
-
-Guardian delivery credentials belong only in `backend/.env` or the deployment secret store. Never prefix them with `EXPO_PUBLIC_` or commit them. Twilio trial accounts can text only verified recipients. The UI reports `queued` only after the provider accepts a request; it never claims recipient delivery or opening.
-
-Notification API endpoints:
-
-- `GET /notifications/status` — authenticated, secret-safe provider readiness
-- `POST /guardians/{guardian_id}/send-invite` — deliver the expiring invite by selected channels
-- `POST /guardians/notify` — permission-aware `journey_started`, `missed_checkin`, `journey_completed`, `sos`, or `sos_cancelled` fan-out
-- `POST /sos` — starts the SOS session and sends real alerts to the signed-in user's opted-in guardians
-
-All notification mutation endpoints require the authenticated cookie session and `X-CSRF-Token`. Provider IDs and accepted/failed statuses are returned per channel for operational diagnosis.
+For a physical phone on the same Wi-Fi network, replace `127.0.0.1` with the computer's LAN address.
 
 ### Verification
 
-```bash
-cd app
-npm run typecheck
-npx expo-doctor
-npm run build:web
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest -q
 
-cd ../backend
-python -m pytest -q
+cd ..\app
+npm run typecheck
+npm run build:web
 ```
 
-CI runs Python 3.12 backend tests on Windows/Linux and performs the frontend typecheck, Expo Doctor, static export, and PWA artifact checks.
+## Deploy on Railway
 
-## Demo flow
-1. Install Shakti360 from the browser or open the responsive PWA.
-2. Add a Guardian and share the expiring invitation.
-3. Start a safety journey and show adaptive Battery Guardian output.
-4. Trigger a demo missed check-in and show the deterministic policy result.
-5. End the journey and open its truthful Privacy Receipt.
-6. Open nearby live OpenStreetMap resources.
-7. Demonstrate Scam Shield, Evidence Vault, and Judge Mode.
+Shakti360 uses one Railway service and one container. No separate frontend service is required.
 
-## Pro additions
-This upgraded package adds SafeWord, Context Fusion, Safety Readiness, Pattern Intelligence, Impact Analytics, deterministic policy tests, trusted-circle demo delivery, multilingual string scaffolding, Docker files, and expanded judge/pitch documentation.
+### 1. Connect the repository
 
-### New API endpoints
-- `GET /agents`
-- `POST /agents/context`
-- `POST /readiness`
-- `POST /journeys/safeword`
-- `GET /incidents/patterns`
-- `POST /feedback`
-- `GET /analytics/impact`
-- `POST /resources/nearby-v2`
+Create a Railway service from this GitHub repository and select the `main` branch.
+
+Configure the service:
+
+```text
+Root Directory: /
+Config File Path: /railway.json
+Build Command: empty
+Start Command: empty (repository config supplies it)
+```
+
+Railway reads the root [`Dockerfile`](./Dockerfile) and [`railway.json`](./railway.json). The container builds the Expo PWA, installs the Python backend, starts FastAPI privately, and exposes Nginx on Railway's dynamic `$PORT`.
+
+Do not configure `npx`, `expo start`, or `npm start` as the production start command. Node is used only in the build stage.
+
+### 2. Configure required variables
+
+```env
+APP_ENV=production
+JWT_SECRET=<a-long-cryptographically-random-secret>
+GUARDIAN_INVITE_BASE_URL=https://shakti360-guardian-production.up.railway.app/guardian-invite
+```
+
+Generate the signing secret locally:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Never expose `JWT_SECRET` through an `EXPO_PUBLIC_` variable or commit it.
+
+### 3. Add persistent PostgreSQL
+
+Add a Railway PostgreSQL service, then use Railway's **Add Reference** control to provide its `DATABASE_URL` to the Shakti360 service. Do not paste an unresolved `${{Postgres.DATABASE_URL}}` expression if the database service has another name.
+
+The API can start with its SQLite fallback for a demo, but SQLite inside an ephemeral container is not restart-proof. PostgreSQL is required for durable production accounts and sessions.
+
+### 4. Enable real notifications
+
+Twilio SMS:
+
+```env
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
+TWILIO_FROM_NUMBER=+15551234567
+```
+
+Alternatively, replace `TWILIO_FROM_NUMBER` with:
+
+```env
+TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxx
+```
+
+Resend email:
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=Shakti360 Guardian <alerts@your-verified-domain.com>
+```
+
+Twilio trial accounts can send only to verified recipients. Resend requires an authorized sender. Shakti360 always retains a copy/share invitation fallback when provider delivery fails.
+
+### 5. Optional signed native releases
+
+The PWA is immediately installable without an app store. Only configure these when signed release artifacts genuinely exist:
+
+```env
+EXPO_PUBLIC_ANDROID_DOWNLOAD_URL=https://downloads.example.com/shakti360.apk
+EXPO_PUBLIC_IOS_DOWNLOAD_URL=https://apps.apple.com/app/example
+```
+
+Android APK and iOS release buttons stay hidden until their corresponding URL is configured.
+
+### 6. Deploy and verify
+
+Deploy the latest commit without a custom start-command override. The build must contain both stages:
+
+```text
+FROM node:22-alpine AS web-build
+FROM python:3.12-slim
+```
+
+Verify:
+
+```text
+https://shakti360-guardian-production.up.railway.app/
+https://shakti360-guardian-production.up.railway.app/api/health
+https://shakti360-guardian-production.up.railway.app/api/ready
+https://shakti360-guardian-production.up.railway.app/api/docs
+```
+
+Expected health response:
+
+```json
+{"status":"ok","service":"shakti360-api"}
+```
+
+## API map
+
+| Capability | Endpoints |
+|---|---|
+| Authentication | `/auth/register`, `/auth/login`, `/auth/me`, `/auth/refresh`, `/auth/logout` |
+| Journeys | `/journeys`, `/journeys/{id}`, `/journeys/checkin`, `/journeys/safeword`, `/journeys/{id}/sos` |
+| Guardian Circle | `/guardians`, `/guardian-invites/{token}`, `/guardians/{id}/send-invite`, `/guardians/notify` |
+| SOS | `/sos`, `/sos/{id}/cancel` |
+| Nearby support | `/resources/nearby`, `/resources/nearby-v2` |
+| Safety agents | `/agents/cyber`, `/agents/privacy`, `/agents/context`, `/readiness`, `/battery/policy` |
+| Evidence and impact | `/incidents`, `/incidents/patterns`, `/feedback`, `/analytics/impact` |
+| Operations | `/health`, `/ready`, `/notifications/status`, `/docs` |
+
+In production, prefix every API path with `/api`, for example `/api/auth/login`.
+
+## Safety boundaries
+
+Shakti360 does not guarantee safety, predict crime, replace emergency services, or claim that a queued provider request reached a person. Nearby community data can be incomplete. Users retain control over escalation and should verify critical information through independent channels.
+
+AI assists with interpretation and organization. High-impact escalation remains deterministic and human-controlled.
