@@ -106,6 +106,12 @@ RESEND_FROM_EMAIL=Shakti360 Guardian <guardian@your-verified-domain.com>
 
 Enable public HTTPS access for both `web` and `api`. When either public URL changes, update the project variables and redeploy both services because Expo embeds the API URL during the frontend build. Zerops supplies `${db_connectionString}` from the PostgreSQL service named `db`; no database password is committed.
 
+### Railway
+
+The root [`railway.json`](./railway.json) deploys the FastAPI backend from this monorepo through `Dockerfile.railway`. Keep the backend Railway service Root Directory empty (`/`) so Railway reads that file. It installs `backend/requirements.txt`, starts Uvicorn using Railway's dynamic `$PORT`, and checks `/health`.
+
+For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. Set `EXPO_PUBLIC_API_URL` to the backend's public HTTPS URL before building the PWA.
+
 Production environment variables:
 
 - `EXPO_PUBLIC_API_URL`: public HTTPS API origin embedded during the web build
