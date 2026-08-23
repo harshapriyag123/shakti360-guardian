@@ -1,6 +1,8 @@
 module.exports = {
   globDirectory: "dist",
-  globPatterns: ["**/*.{js,css,html,json,png,ico,woff2,ttf}"],
+  // Route HTML is network-first so a deployment cannot strand users on an
+  // old JavaScript bundle. Only the offline document is precached.
+  globPatterns: ["**/*.{js,css,json,png,ico,woff2,ttf}", "offline.html"],
   globIgnores: ["sw.js"],
   swDest: "dist/sw.js",
   cleanupOutdatedCaches: true,
@@ -9,5 +11,8 @@ module.exports = {
   navigateFallback: "/offline.html",
   navigateFallbackDenylist: [/^\/api\//],
   maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-  runtimeCaching: [{ urlPattern: /^https:\/\/overpass-api\.de\//, handler: "NetworkOnly" }]
+  runtimeCaching: [
+    { urlPattern: ({ request }) => request.mode === "navigate", handler: "NetworkFirst", options: { cacheName: "shakti360-pages-v2", networkTimeoutSeconds: 3, expiration: { maxEntries: 24, maxAgeSeconds: 86400 } } },
+    { urlPattern: /^https:\/\/overpass-api\.de\//, handler: "NetworkOnly" }
+  ]
 };

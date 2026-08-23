@@ -28,11 +28,14 @@ def nearby(lat: float, lon: float, radius_km: float = 8.0, types=None):
 async def nearby_live(lat: float, lon: float, radius_km: float = 8.0):
     """Fetch current community-maintained support locations, with a labeled demo fallback."""
     radius_m = min(int(radius_km * 1000), 15000)
-    query = f'''[out:json][timeout:8];(
+    query = f'''[out:json][timeout:3];(
       nwr["amenity"~"hospital|clinic|pharmacy|police"](around:{radius_m},{lat},{lon});
     );out center tags 30;'''
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        # Stay well inside the browser's API timeout. Live community data is
+        # optional; the endpoint must still answer when Overpass is busy.
+        timeout = httpx.Timeout(4.0, connect=2.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post("https://overpass-api.de/api/interpreter", content=query, headers={"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Shakti360Guardian/0.1"})
             response.raise_for_status()
         results = []
