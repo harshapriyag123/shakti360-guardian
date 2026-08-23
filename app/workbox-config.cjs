@@ -12,7 +12,7 @@ module.exports = {
   navigateFallbackDenylist: [/^\/api\//],
   maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
   runtimeCaching: [
-    { urlPattern: ({ request }) => request.mode === "navigate", handler: "NetworkFirst", options: { cacheName: "shakti360-pages-v2", networkTimeoutSeconds: 3, expiration: { maxEntries: 24, maxAgeSeconds: 86400 } } },
+    { urlPattern: ({ request }) => request.mode === "navigate", handler: "NetworkFirst", options: { cacheName: "shakti360-pages-v3", networkTimeoutSeconds: 10, expiration: { maxEntries: 24, maxAgeSeconds: 86400 } } },
     { urlPattern: /^https:\/\/overpass-api\.de\//, handler: "NetworkOnly" }
   ]
 };
