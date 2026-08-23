@@ -14,6 +14,7 @@
     ]
   },
   "deploy": {
+    "startCommand": "/usr/local/bin/start-fullstack.sh",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 180,
     "restartPolicyType": "ON_FAILURE",
