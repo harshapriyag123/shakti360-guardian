@@ -8,7 +8,7 @@
     ]
   },
   "deploy": {
-    "startCommand": "/docker-entrypoint.sh nginx -g 'daemon off;'",
+    "startCommand": "/usr/local/bin/start-nginx.sh",
     "healthcheckPath": "/",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
