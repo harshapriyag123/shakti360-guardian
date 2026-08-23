@@ -13,7 +13,12 @@ async function request<T>(path: string, init?: RequestInit, attempt = 0): Promis
     if (!res.ok) {
       const raw = await res.text();
       let detail = raw;
-      try { const parsed = JSON.parse(raw); detail = typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed.detail); } catch { /* plain-text response */ }
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.detail === "string") detail = parsed.detail;
+        else if (Array.isArray(parsed.detail)) detail = parsed.detail.map((item: { msg?: string }) => item.msg?.replace(/^Value error,\s*/, "") || "Please check this field.").join(" ");
+        else detail = "Please check the information and try again.";
+      } catch { /* plain-text response */ }
       throw new Error(detail || `Request failed (${res.status})`);
     }
     return res.json();

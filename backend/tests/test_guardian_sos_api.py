@@ -37,6 +37,12 @@ def test_phone_requires_international_format():
     session = signed_in_client()
     assert session.post("/guardians", json={"name": "Asha", "phone": "555-1234"}).status_code == 422
 
+def test_phone_adds_missing_international_plus_prefix():
+    session = signed_in_client()
+    response = session.post("/guardians", json={"name": "Asha", "phone": "12109923958"})
+    assert response.status_code == 200
+    assert response.json()["phone"] == "+12109923958"
+
 def test_missing_guardian_invite_is_rejected():
     assert client.get("/guardian-invites/not-a-token").status_code == 404
 

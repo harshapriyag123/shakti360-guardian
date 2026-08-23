@@ -93,6 +93,8 @@ class GuardianCreate(BaseModel):
         if value is None or not value.strip():
             return None
         normalized = value.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+        if normalized.isdigit():
+            normalized = f"+{normalized}"
         if not normalized.startswith("+") or not normalized[1:].isdigit() or not 8 <= len(normalized[1:]) <= 15:
             raise ValueError("Phone must use international E.164 format, for example +15551234567")
         return normalized
