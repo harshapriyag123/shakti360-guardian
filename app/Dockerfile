@@ -3,10 +3,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG EXPO_PUBLIC_API_URL=http://localhost:8000
-ARG EXPO_PUBLIC_APP_URL=http://localhost:8080
+ARG EXPO_PUBLIC_API_URL
+ARG EXPO_PUBLIC_APP_URL
 ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 ENV EXPO_PUBLIC_APP_URL=$EXPO_PUBLIC_APP_URL
+RUN test -n "$EXPO_PUBLIC_API_URL" || (echo "EXPO_PUBLIC_API_URL build variable is required" && exit 1)
+RUN case "$EXPO_PUBLIC_API_URL" in https://*) ;; *) echo "EXPO_PUBLIC_API_URL must be a public HTTPS URL"; exit 1 ;; esac
 RUN npm run build:web
 
 FROM nginx:1.29-alpine

@@ -114,6 +114,7 @@ For a separate PWA service, connect the same repository and set its Root Directo
 
 The frontend deploy command starts Nginx directly. Do not configure `npx expo start`, `npm start`, or another Node start override in Railway; Node is present only in the build stage and is intentionally absent from the production image.
 The Nginx configuration is rendered at container startup and listens on Railway's dynamic `$PORT` (with port 80 as the local Docker default), so Railway's `/` healthcheck and public domain target the same listener.
+The production Docker build deliberately fails if `EXPO_PUBLIC_API_URL` is missing or is not HTTPS. This prevents a deployed browser bundle from silently calling `localhost:8000` on each user's device.
 
 Production environment variables:
 

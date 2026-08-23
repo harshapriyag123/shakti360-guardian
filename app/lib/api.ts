@@ -1,7 +1,9 @@
-const runtimeDevelopmentApi = typeof window !== "undefined" && window.location.protocol === "http:"
-  ? `http://${window.location.hostname}:8000`
-  : "http://localhost:8000";
-export const API_BASE = process.env.EXPO_PUBLIC_API_URL || runtimeDevelopmentApi;
+const runtimeApiFallback = typeof window === "undefined"
+  ? "http://localhost:8000"
+  : window.location.protocol === "http:"
+    ? `http://${window.location.hostname}:8000`
+    : `${window.location.origin}/api`;
+export const API_BASE = (process.env.EXPO_PUBLIC_API_URL || runtimeApiFallback).replace(/\/$/, "");
 
 async function request<T>(path: string, init?: RequestInit, attempt = 0): Promise<T> {
   const controller = new AbortController();
