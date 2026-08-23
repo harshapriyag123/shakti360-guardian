@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Shakti360 Guardian",
+    "slug": "shakti360-guardian",
+    "scheme": "shakti360",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./public/shakti360-icon.png",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Shakti360 uses your location only when you start a safety journey or request nearby resources."
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.shakti360"
+    },
+    "android": {
+      "package": "com.example.shakti360",
+      "adaptiveIcon": {
+        "foregroundImage": "./public/shakti360-icon.png",
+        "backgroundColor": "#0A4D3A"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./public/shakti360-icon.png"
+    }
+  }
+}

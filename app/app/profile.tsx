@@ -1,0 +1,15 @@
+import { useCallback, useEffect, useState } from "react";
+import { Link, router } from "expo-router";
+import { Pressable, Text, View } from "react-native";
+import { authPost } from "../lib/api";
+import { getCurrentUser } from "../lib/authClient";
+import { Action, Card, colors, ErrorBanner, Eyebrow, Loading, Pill, Screen, Title } from "../lib/ui";
+
+type User = { id: string; email: string; preferred_name: string; age_group?: string; email_verified: boolean; created_at: string };
+export default function Profile() {
+  const [user, setUser] = useState<User | null>(null); const [busy, setBusy] = useState(true); const [error, setError] = useState("");
+  const load = useCallback(async () => { try { setBusy(true); setError(""); setUser(await getCurrentUser<User>()); } catch (e) { setError(e instanceof Error ? e.message : "Could not load account"); } finally { setBusy(false); } }, []);
+  useEffect(() => { load(); }, [load]);
+  async function logout() { try { setBusy(true); await authPost("/auth/logout"); setUser(null); router.replace("/"); } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out"); } finally { setBusy(false); } }
+  return <Screen><Eyebrow>MY ACCOUNT</Eyebrow><Title subtitle="Only the information needed to operate your account.">Profile & security</Title>{busy ? <Loading /> : null}{error && !user ? <><ErrorBanner message={error} /><Card><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>Sign in to protect your setup</Text><Text style={{ color: colors.muted, lineHeight: 20 }}>Exploration remains public. Account-owned persistence is being introduced feature by feature.</Text><Action label="Sign in" icon="log-in" onPress={() => router.push("/login")} /><Link href="/register" asChild><Pressable style={{ minHeight: 44, justifyContent: "center" }}><Text style={{ color: colors.primary, textAlign: "center", fontWeight: "800" }}>Create an account</Text></Pressable></Link></Card></> : null}{user ? <><Card tone="mint"><View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }}><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 24 }}>{user.preferred_name}</Text><Text style={{ color: colors.muted }}>{user.email}</Text></View><Pill label={user.email_verified ? "Verified" : "Verification pending"} tone={user.email_verified ? "green" : "gold"} /></View></Card><Card><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>Account security</Text><Text style={{ color: colors.muted, lineHeight: 21 }}>Password: Argon2 protected</Text><Text style={{ color: colors.muted, lineHeight: 21 }}>Session: HttpOnly access and refresh cookies</Text><Text style={{ color: colors.muted, lineHeight: 21 }}>Member since: {new Date(user.created_at).toLocaleDateString()}</Text><Text style={{ color: colors.gold, fontSize: 12 }}>Email delivery and verification completion are not configured in hackathon mode.</Text></Card><Action label="Sign out" icon="log-out" variant="secondary" onPress={logout} disabled={busy} />{error ? <ErrorBanner message={error} /> : null}</> : null}</Screen>;
+}

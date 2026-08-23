@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: ./app
+      args:
+        EXPO_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      CORS_ORIGINS: http://localhost:8080,http://localhost:8081,http://localhost:19006
+      DATABASE_URL: postgresql+psycopg://shakti360:shakti360@postgres:5432/shakti360
+      JWT_SECRET: local-compose-secret-change-before-deployment
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: shakti360
+      POSTGRES_USER: shakti360
+      POSTGRES_PASSWORD: shakti360
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shakti360 -d shakti360"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
