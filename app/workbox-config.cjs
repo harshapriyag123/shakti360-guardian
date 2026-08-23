@@ -5,7 +5,7 @@ module.exports = {
   swDest: "dist/sw.js",
   cleanupOutdatedCaches: true,
   clientsClaim: true,
-  skipWaiting: false,
+  skipWaiting: true,
   navigateFallback: "/offline.html",
   navigateFallbackDenylist: [/^\/api\//],
   maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,

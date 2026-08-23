@@ -1,4 +1,4 @@
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, type RefreshControlProps, type TextInputProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
@@ -12,7 +12,9 @@ export const colors = {
 
 export function Screen({ children, refreshControl }: { children: ReactNode; refreshControl?: ReactElement<RefreshControlProps> }) {
   const network = useNetworkState();
-  const state = network.isConnected === false ? "OFFLINE" : network.isInternetReachable === false ? "LIMITED" : "ONLINE";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const state = !mounted ? "ONLINE" : network.isConnected === false ? "OFFLINE" : network.isInternetReachable === false ? "LIMITED" : "ONLINE";
   return <SafeAreaView style={s.safe}><ScrollView refreshControl={refreshControl} contentContainerStyle={s.screen}><View style={s.safetyRail}><View accessibilityLabel={`Connection status ${state}`} style={s.networkPill}><View style={[s.networkDot, state !== "ONLINE" && { backgroundColor: colors.gold }]} /><Text style={s.networkText}>{state}</Text></View><Link href="/exit" asChild><Pressable accessibilityLabel="Quick exit to a neutral screen" style={s.exitButton}><Ionicons name="exit-outline" size={18} color={colors.muted} /><Text style={s.exitText}>Quick exit</Text></Pressable></Link><Link href="/sos" asChild><Pressable accessibilityLabel="Open SOS mode" style={s.sosButton}><Ionicons name="alert-circle" size={18} color="white" /><Text style={s.sosText}>SOS</Text></Pressable></Link></View>{children}</ScrollView></SafeAreaView>;
 }
 
