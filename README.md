@@ -112,6 +112,8 @@ The root [`railway.json`](./railway.json) deploys the FastAPI backend from this 
 
 For a separate PWA service, connect the same repository and set its Root Directory to `/app`. Railway then reads `app/railway.json` and builds `app/Dockerfile`. Set `EXPO_PUBLIC_API_URL` to the backend's public HTTPS URL before building the PWA.
 
+The frontend deploy command starts Nginx directly. Do not configure `npx expo start`, `npm start`, or another Node start override in Railway; Node is present only in the build stage and is intentionally absent from the production image.
+
 Production environment variables:
 
 - `EXPO_PUBLIC_API_URL`: public HTTPS API origin embedded during the web build
