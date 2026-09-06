@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.shaktisafe/
+output/
+live-checks/
+.rote/
+.env
+*.log
+.venv/
+venv/
+demo-output/

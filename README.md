@@ -256,3 +256,19 @@ In production, prefix every API path with `/api`, for example `/api/auth/login`.
 Shakti360 does not guarantee safety, predict crime, replace emergency services, or claim that a queued provider request reached a person. Nearby community data can be incomplete. Users retain control over escalation and should verify critical information through independent channels.
 
 AI assists with interpretation and organization. High-impact escalation remains deterministic and human-controlled.
+
+
+## Rote Playoffs: ShaktiSafe Brief
+
+The repository includes a standalone Rote Play candidate for the repetitive **before-I-leave** check: worldwide geocoding, weather, modeled air quality, supported US National Weather Service alerts, and changes since the previous check for the same outing.
+
+The package is isolated from the production web application under [`rote/shaktisafe-brief/`](./rote/shaktisafe-brief/). It does not change journey escalation, authentication, notifications, or the Railway runtime.
+
+```bash
+cd rote/shaktisafe-brief
+python3 -m unittest -v
+python3 demo.py
+python3 shaktisafe.py run --city Chennai --country IN --location-id 1264527
+```
+
+See the [Rote recording and Community submission handoff](./rote/shaktisafe-brief/ROTE_HANDOFF.md). The repository code is not itself a hackathon submission; the verified Play must be published to **Community**.
