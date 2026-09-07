@@ -27,6 +27,11 @@ export default function Guardians() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRelationship, setEditRelationship] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
 
   const load = useCallback(async () => {
     try { const data = await get<{ guardians: Guardian[] }>("/guardians"); setItems(data.guardians); }
@@ -64,9 +69,37 @@ export default function Guardians() {
     await Share.share({ title: "Shakti360 Guardian invitation", message: `${guardian.name}, you’re invited to be a temporary safety guardian. ${url}\nExpires ${new Date(guardian.invite_expires_at).toLocaleString()}` });
   }
 
+  function beginEdit(guardian: Guardian) {
+    setEditingId(guardian.id);
+    setEditName(guardian.name);
+    setEditRelationship(guardian.relationship);
+    setEditPhone(guardian.phone || "");
+    setEditEmail(guardian.email || "");
+    setError("");
+    setNotice("");
+  }
+
+  async function saveEdit(guardian: Guardian) {
+    try {
+      setBusy(true); setError(""); setNotice("");
+      const enteredPhone = editPhone.replace(/[\s()-]/g, "");
+      const normalizedPhone = enteredPhone && !enteredPhone.startsWith("+") ? `+${enteredPhone}` : enteredPhone;
+      const updated = await authPost<Guardian>(`/guardians/${guardian.id}/update`, {
+        name: editName.trim(), relationship: editRelationship.trim(), phone: normalizedPhone || null,
+        email: editEmail.trim() || null, priority: guardian.priority, journey_started: guardian.journey_started,
+        missed_checkin: guardian.missed_checkin, sos: guardian.sos, live_location: guardian.live_location,
+      });
+      setItems(value => value.map(item => item.id === guardian.id ? { ...item, ...updated } : item));
+      setEditingId(null);
+      setNotice(`${updated.name}'s contact details were updated.`);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not update this guardian"); }
+    finally { setBusy(false); }
+  }
+
   const valid = name.trim() && (sms || mail) && (!sms || phone.trim()) && (!mail || email.trim());
   return <Screen><Eyebrow>TRUSTED GUARDIAN CIRCLE</Eyebrow><Title subtitle="You decide who receives journey, missed check-in, SOS, and temporary location updates.">People you trust</Title><Card tone="mint"><Text style={{ color: colors.primaryDark, fontWeight: "900" }}>Session-based, never permanent</Text><Text style={{ color: colors.muted, lineHeight: 20 }}>Invitation links expire after 24 hours. Location access expires after each safety session.</Text></Card>
     {items.map((guardian, index) => <Card key={guardian.id}><View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}><View style={{ flex: 1 }}><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 17 }}>{guardian.name}</Text><Text style={{ color: colors.muted }}>{guardian.relationship} • Priority {index + 1}</Text><Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>{guardian.phone || guardian.email || "Share link only"}</Text></View><Pill label={guardian.status} tone={guardian.status === "invite sent" ? "green" : "gold"} /></View>
+      {editingId === guardian.id ? <View style={{ gap: 10 }}><Field label="Name" value={editName} onChangeText={setEditName} autoComplete="name" /><Field label="Relationship" value={editRelationship} onChangeText={setEditRelationship} /><Field label="Mobile number" value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="+1 555 123 4567" /><Field label="Email address" value={editEmail} onChangeText={setEditEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" /><View style={{ flexDirection: "row", gap: 9, flexWrap: "wrap" }}><View style={{ flex: 1, minWidth: 145 }}><Action label="Save contact" icon="save" onPress={() => saveEdit(guardian)} disabled={busy || !editName.trim() || (!editPhone.trim() && !editEmail.trim())} /></View><View style={{ flex: 1, minWidth: 145 }}><Action label="Cancel" icon="close" variant="secondary" onPress={() => setEditingId(null)} disabled={busy} /></View></View></View> : <Action label="Edit contact details" icon="create-outline" variant="secondary" onPress={() => beginEdit(guardian)} />}
       {guardian.delivery?.map(item => <Text key={item.channel} style={{ color: item.status === "queued" ? colors.primary : colors.gold, fontSize: 13, fontWeight: "700" }}>{item.channel === "sms" ? "SMS" : "Email"}: {item.status === "queued" ? item.message : "Delivery was not accepted. Copy or share the secure invitation below."}</Text>)}
       <Text selectable style={{ color: colors.primaryDark, backgroundColor: colors.mint, borderRadius: 10, padding: 10, fontSize: 12 }} numberOfLines={2}>{inviteLink(guardian)}</Text>
       <View style={{ flexDirection: "row", gap: 9, flexWrap: "wrap" }}><View style={{ flex: 1, minWidth: 145 }}><Action label="Copy invitation code" icon="copy" variant="secondary" onPress={() => copyInvite(guardian)} /></View><View style={{ flex: 1, minWidth: 145 }}><Action label="Share invitation" icon="share" variant="secondary" onPress={() => shareInvite(guardian)} /></View></View>
