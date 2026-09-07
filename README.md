@@ -272,3 +272,7 @@ python3 shaktisafe.py run --city Chennai --country IN --location-id 1264527
 ```
 
 See the [Rote recording and Community submission handoff](./rote/shaktisafe-brief/ROTE_HANDOFF.md). The repository code is not itself a hackathon submission; the verified Play must be published to **Community**.
+
+## Published Rote Play
+
+[ShaktiSafe Brief — What changed before I leave? (Community, pinned 0.1.0)](https://play.modiqo.ai/harshapriyag123/shaktisafe-brief@0.1.0) is now published. See the [hackathon submission package](./hackathon-submission/SUBMISSION.md) for the demo, evidence, and limitations; earlier candidate-status notes above are historical.
