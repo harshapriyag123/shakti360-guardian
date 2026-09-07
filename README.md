@@ -1,278 +1,298 @@
-# Shakti360 Guardian
+<div align="center">
+  <img src="app/public/shakti360-icon.png" alt="Shakti360 Guardian logo" width="112" />
 
-> Personal safety without permanent surveillance.
+  # Shakti360 Guardian
 
-Shakti360 is an installable, privacy-first safety platform that helps a person prepare for a journey, stay connected to people they trust, find nearby support, recognize suspicious messages, and document incidents. It combines an Expo web/PWA experience with a FastAPI safety engine in one Railway deployment.
+  **Personal safety without permanent surveillance.**
 
-**Live app:** [shakti360-guardian-production.up.railway.app](https://shakti360-guardian-production.up.railway.app)
+  A privacy-first, battery-aware safety platform built for women and anyone who wants safer journeys, trusted human support, practical digital-safety tools, and control over what is shared.
 
-## Why it can win
+  [![Railway](https://img.shields.io/badge/Live_on_Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://shakti360-guardian-production.up.railway.app/)
+  [![Netlify](https://img.shields.io/badge/Live_on_Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)](https://shakti360-guardian.netlify.app/)
+  [![Devfolio](https://img.shields.io/badge/Hackathon_Submission-3770FF?style=for-the-badge)](https://devfolio.co/projects/shaktiguardian-6a62)
 
-Most safety products ask for continuous access and promise certainty they cannot provide. Shakti360 takes the opposite approach:
+  ![Expo](https://img.shields.io/badge/Expo-57-000020?logo=expo)
+  ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)
+  ![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688?logo=fastapi&logoColor=white)
+  ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+  ![Tests](https://img.shields.io/badge/backend_tests-71_passing-1F883D)
+</div>
 
-- **Purpose-bound protection:** journey and location-sharing sessions end when their purpose ends.
-- **Human-controlled escalation:** deterministic rules surface options; the system never claims to contact emergency services automatically.
-- **Trusted Guardian Circle:** users choose who receives journey, missed check-in, SOS, and temporary-location updates.
-- **Real delivery adapters:** Twilio SMS and Resend email return truthful queued, failed, or unconfigured states.
-- **Battery-aware operation:** the Battery Guardian adapts sampling policy instead of assuming unlimited GPS use.
-- **Resilient PWA:** installable across desktop, Android, iPhone, and iPad with an offline shell and fresh network-first pages.
-- **Explainable assistance:** cyber, context, privacy, readiness, evidence, and pattern tools show their reasoning without pretending to predict crime.
+## Try the working product
 
-## Judge-ready demo
+| Experience | Link |
+|---|---|
+| Primary production app | [Open Shakti360 on Railway](https://shakti360-guardian-production.up.railway.app/) |
+| Netlify deployment | [Open Shakti360 on Netlify](https://shakti360-guardian.netlify.app/) |
+| Interactive API documentation | [Open FastAPI Swagger UI](https://shakti360-guardian-production.up.railway.app/api/docs) |
+| Health endpoint | [Check the live API](https://shakti360-guardian-production.up.railway.app/api/health) |
+| Hackathon submission | [View Shakti Guardian on Devfolio](https://devfolio.co/projects/shaktiguardian-6a62) |
 
-1. Register or sign in and land on the authenticated dashboard.
-2. Add a trusted guardian, then copy or share the 24-hour invitation.
-3. Start a timed journey and show the battery policy decision.
-4. Trigger a missed check-in or SafeWord and inspect deterministic escalation.
-5. End the journey and open its locally stored privacy receipt.
-6. Find nearby hospitals, clinics, pharmacies, and police using live OpenStreetMap data with a bounded fallback.
-7. Demonstrate the Scam Scanner, Evidence Vault, Safety Readiness, and Impact dashboard.
-8. Install the PWA from the browser and reopen it in standalone mode.
+The web experience is an installable Progressive Web App. On iPhone or iPad, open it in Safari and use **Share → Add to Home Screen**. Apple does not allow a website to open that installation dialog automatically.
 
-## System design
+## The problem
 
-```text
-Browser / installed PWA
-        │ same-origin HTTPS
-        ▼
-Railway container :$PORT
-        │
-        ├── Nginx ─────────────► Expo static web application
-        │
-        └── /api/* ────────────► FastAPI on 127.0.0.1:8000
-                                      │
-                                      ├── PostgreSQL or SQLite fallback
-                                      ├── Twilio SMS
-                                      ├── Resend email
-                                      └── OpenStreetMap / Overpass
+Personal-safety tools often force users into an uncomfortable tradeoff: accept continuous tracking or lose protection. They may also hide delivery failures, drain the battery through constant GPS polling, or imply that an automated system can guarantee safety.
+
+People need a tool that:
+
+- protects them during a specific journey without tracking them forever;
+- keeps trusted people informed without taking control away from the user;
+- responds predictably when a check-in is missed;
+- stays useful when battery, network, or notification providers are limited;
+- helps with physical safety, digital threats, evidence, and nearby support in one place; and
+- communicates uncertainty honestly.
+
+## The solution
+
+Shakti360 creates a temporary safety session around a journey. The user chooses the destination, ETA, battery level, and Guardian Circle. During the journey, the system applies a deterministic escalation policy, adapts its power strategy, supports quick check-ins and SafeWord activation, and ends temporary monitoring when the user arrives safely.
+
+The same product also provides scam-message analysis, private incident documentation, privacy receipts, readiness checks, pattern insights, and nearby support resources.
+
+## What makes Shakti360 different
+
+- **Purpose-bound protection:** monitoring is attached to a journey and ends with it.
+- **Human-controlled escalation:** the application presents options; it never silently contacts emergency services.
+- **Battery-aware design:** native builds can sync battery changes automatically. Browsers that block battery access, including iPhone Safari, show an honest manual field instead of a fabricated value.
+- **Editable active journeys:** ETA and battery can be corrected even after a journey starts.
+- **Editable Guardian Circle:** existing guardian names, phone numbers, and email addresses can be updated.
+- **Truthful notifications:** Twilio and Resend adapters distinguish queued, failed, and unconfigured delivery.
+- **Privacy receipts:** completed journeys create a readable record of what was shared, with whom, and for how long.
+- **Resilient PWA:** the application has an offline shell, network-first route updates, and device-specific installation guidance.
+- **Explainable assistance:** AI-style tools explain their reasoning without claiming to predict crime or guarantee safety.
+
+## Product capabilities
+
+### Journey Guardian
+
+- Custom starting point, destination, and ETA
+- Automatic battery reading where supported, with manual fallback
+- Live ETA and battery editing during an active journey
+- Safe-arrival check-in and missed-check-in simulation
+- Deterministic escalation levels
+- SafeWord workflow
+- Recovery of active local journey state after refresh
+
+### Trusted Guardian Circle
+
+- Guardian name, relationship, phone, and email
+- SMS or email invitation channels
+- Editable contact details
+- Per-event permissions for journey start, missed check-in, SOS, and temporary location
+- Secure invitation links that expire after 24 hours
+- Copy/share fallback when a delivery provider is unavailable
+
+### Safety toolkit
+
+- Nearby hospitals, clinics, pharmacies, and police using OpenStreetMap/Overpass
+- Suspicious-message and scam analysis
+- Safety-readiness assessment
+- Evidence Vault with structured incident summaries
+- Privacy review and locally stored privacy receipts
+- Pattern insights across the user's own incident records
+- Explicit SOS session with user-controlled cancellation
+
+## Agentic safety system
+
+| Agent or engine | Responsibility |
+|---|---|
+| Journey Guardian | Maintains the timed journey and check-in lifecycle |
+| Battery Guardian | Selects a balanced, saver, or critical power policy |
+| Context Fusion Agent | Combines journey, battery, network, and check-in signals |
+| Escalation Engine | Applies transparent deterministic safety rules |
+| Trusted Circle | Routes updates only to contacts selected by the user |
+| Cyber Guardian | Examines suspicious messages and explains risk indicators |
+| Evidence Guardian | Converts incident notes into a structured summary |
+| Privacy Guardian | Identifies unnecessary permissions and exposure |
+| Readiness Agent | Finds gaps in the user's current safety setup |
+| Pattern Agent | Summarizes recurring themes without predicting future crime |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    U["Browser or installed PWA"] -->|"same-origin HTTPS"| N["Nginx gateway"]
+    N --> W["Expo static web app"]
+    N -->|"/api/*"| A["FastAPI safety engine"]
+    A --> D["PostgreSQL or SQLite fallback"]
+    A --> P["Twilio and Resend"]
+    A --> O["OpenStreetMap / Overpass"]
 ```
 
-The browser never calls `localhost`, crosses origins, or depends on Railway private DNS. Nginx strips the public `/api` prefix and forwards requests to FastAPI within the same container.
+Railway builds both application layers into one container. Nginx serves the Expo export and forwards `/api/*` to FastAPI on the private loopback interface. Netlify serves the same static Expo export and proxies `/api/*` to the Railway API, preserving a simple same-origin browser contract.
 
-## Working product surface
+## Technology stack
 
-### Protection
+| Layer | Technology |
+|---|---|
+| Cross-platform client | Expo Router, React Native, React Native Web, TypeScript |
+| Installable web app | Static Expo export, Web App Manifest, Workbox service worker |
+| API | FastAPI, Pydantic, Uvicorn |
+| Authentication | Argon2 password hashing, short-lived access tokens, revocable refresh sessions, HttpOnly cookies, CSRF protection |
+| Data | SQLAlchemy, PostgreSQL in production, SQLite fallback for local/demo use |
+| Notifications | Twilio SMS and Resend email |
+| Nearby resources | OpenStreetMap and Overpass API |
+| Production gateway | Nginx |
+| Deployment | Railway Docker deployment and Netlify static deployment |
+| Quality | Pytest, TypeScript compiler, Expo static export, GitHub Actions |
 
-- Timed safety journeys, check-ins, explicit SOS, cancellation, and SafeWord
-- Battery policy and deterministic escalation engine
-- Guardian permissions and expiring invitation links
-- Temporary-session language and privacy receipts
+## Three-minute judge demo
 
-### Assistance
+1. Open the [live Railway app](https://shakti360-guardian-production.up.railway.app/) and create an account or explore the product.
+2. Open **Guardians**, add a trusted contact, and demonstrate the secure invitation link.
+3. Edit the guardian's phone number to show that contact information remains under user control.
+4. Open **Journey**, enter a route, ETA, and the phone battery percentage if the browser cannot read it.
+5. Start protection and show the expected-arrival time and Battery Guardian policy.
+6. Edit the ETA during the active journey.
+7. Trigger a demo missed check-in or SafeWord to show deterministic escalation.
+8. Select **I arrived safely**, then open the privacy receipt.
+9. Briefly show **Nearby support**, **Scam scanner**, **Evidence Vault**, and **Safety readiness**.
+10. On iPhone, demonstrate **Share → Add to Home Screen**; on supported Android/desktop browsers, use the browser install prompt.
 
-- Live nearby-support lookup with a fast, labeled fallback
-- Suspicious-message analysis
-- Context fusion, privacy review, and safety-readiness assessment
-- Incident documentation, evidence summaries, and pattern insights
+## Privacy and security by design
 
-### Trust and operations
-
+- No permanent background-surveillance requirement
+- Temporary journey and location-sharing language throughout the product
+- Secure, HttpOnly authentication cookies
+- CSRF verification on authenticated mutations
 - Argon2 password hashing
-- Short-lived access tokens and revocable server-side refresh sessions
-- HttpOnly secure cookies and CSRF protection
-- PostgreSQL URL normalization with safe startup fallback
-- Request IDs, no-store API responses, bounded upstream timeouts, and explicit provider status
-- PWA cache upgrades that do not strand users on old route bundles
-
-## Verified status
-
-The repository includes automated unit, policy, API, authentication, database, and notification-contract tests plus a reusable production smoke test.
-
-```text
-66 local backend tests passing
-35 application routes registered
-36 live Railway operations passing
-Frontend TypeScript passing
-Production Expo/PWA export passing
-```
-
-Run the live smoke test:
-
-```powershell
-cd backend
-.\.venv\Scripts\python.exe scripts\smoke_api.py https://shakti360-guardian-production.up.railway.app/api
-```
-
-The smoke test creates disposable records but deliberately uses no phone number or email address, so it never sends a real notification.
+- Owner-scoped guardians and incident records
+- Expiring Guardian Circle invitation tokens
+- No-store API responses and request IDs
+- Explicit status for unavailable notification providers
+- Bounded timeouts for external resource providers
+- No hidden or automatic emergency-services contact
 
 ## Local development
 
-Requirements: Python 3.12 and Node.js 22.
+Requirements: **Python 3.12**, **Node.js 22**, and npm.
 
-### FastAPI
+### Start the API
 
-```powershell
+```bash
 cd backend
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-API documentation: `http://127.0.0.1:8000/docs`
+API documentation will be available at `http://127.0.0.1:8000/docs`.
 
-### Expo app
+### Start the Expo client
 
-```powershell
+```bash
 cd app
 npm ci
-$env:EXPO_PUBLIC_API_URL="http://127.0.0.1:8000"
-npx expo start
+EXPO_PUBLIC_API_URL=http://127.0.0.1:8000 npx expo start
 ```
 
 For a physical phone on the same Wi-Fi network, replace `127.0.0.1` with the computer's LAN address.
 
-### Verification
+### Run with Docker Compose
 
-```powershell
+```bash
+docker compose up --build
+```
+
+The web app will be available at `http://localhost:8080` and the API at `http://localhost:8000`.
+
+## Verification
+
+```bash
 cd backend
-.\.venv\Scripts\python.exe -m pytest -q
+python -m pytest -q
 
-cd ..\app
+cd ../app
 npm run typecheck
 npm run build:web
 ```
 
-## Deploy on Railway
-
-Shakti360 uses one Railway service and one container. No separate frontend service is required.
-
-### 1. Connect the repository
-
-Create a Railway service from this GitHub repository and select the `main` branch.
-
-Configure the service:
+Current verified result:
 
 ```text
-Root Directory: /
-Config File Path: /railway.json
-Build Command: empty
-Start Command: empty (repository config supplies it)
+71 backend tests passing
+23 Expo static routes exported
+Frontend TypeScript passing
+Production PWA export passing
+Railway deployment healthy
+Netlify deployment healthy
 ```
 
-Railway reads the root [`Dockerfile`](./Dockerfile) and [`railway.json`](./railway.json). The container builds the Expo PWA, installs the Python backend, starts FastAPI privately, and exposes Nginx on Railway's dynamic `$PORT`.
+## Deployment
 
-Do not configure `npx`, `expo start`, or `npm start` as the production start command. Node is used only in the build stage.
+### Railway: full-stack production
 
-### 2. Configure required variables
+The root [`Dockerfile`](./Dockerfile) builds the Expo client, installs the FastAPI backend, and exposes Nginx on Railway's dynamic port. [`railway.json`](./railway.json) contains the repository deployment configuration.
+
+Required production variables:
 
 ```env
 APP_ENV=production
-JWT_SECRET=<a-long-cryptographically-random-secret>
+JWT_SECRET=<long-random-secret>
 GUARDIAN_INVITE_BASE_URL=https://shakti360-guardian-production.up.railway.app/guardian-invite
+DATABASE_URL=<railway-postgresql-reference>
 ```
 
-Generate the signing secret locally:
-
-```powershell
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-```
-
-Never expose `JWT_SECRET` through an `EXPO_PUBLIC_` variable or commit it.
-
-### 3. Add persistent PostgreSQL
-
-Add a Railway PostgreSQL service, then use Railway's **Add Reference** control to provide its `DATABASE_URL` to the Shakti360 service. Do not paste an unresolved `${{Postgres.DATABASE_URL}}` expression if the database service has another name.
-
-The API can start with its SQLite fallback for a demo, but SQLite inside an ephemeral container is not restart-proof. PostgreSQL is required for durable production accounts and sessions.
-
-### 4. Enable real notifications
-
-Twilio SMS:
+Optional real-notification variables:
 
 ```env
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxx
 TWILIO_FROM_NUMBER=+15551234567
-```
-
-Alternatively, replace `TWILIO_FROM_NUMBER` with:
-
-```env
-TWILIO_MESSAGING_SERVICE_SID=MGxxxxxxxxxxxxxxxx
-```
-
-Resend email:
-
-```env
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxx
 RESEND_FROM_EMAIL=Shakti360 Guardian <alerts@your-verified-domain.com>
 ```
 
-Twilio trial accounts can send only to verified recipients. Resend requires an authorized sender. Shakti360 always retains a copy/share invitation fallback when provider delivery fails.
+### Netlify: static PWA
 
-### 5. Optional signed native releases
-
-The PWA is immediately installable without an app store. Only configure these when signed release artifacts genuinely exist:
-
-```env
-EXPO_PUBLIC_ANDROID_DOWNLOAD_URL=https://downloads.example.com/shakti360.apk
-EXPO_PUBLIC_IOS_DOWNLOAD_URL=https://apps.apple.com/app/example
-```
-
-Android APK and iOS release buttons stay hidden until their corresponding URL is configured.
-
-### 6. Deploy and verify
-
-Deploy the latest commit without a custom start-command override. The build must contain both stages:
+The root [`netlify.toml`](./netlify.toml) configures:
 
 ```text
-FROM node:22-alpine AS web-build
-FROM python:3.12-slim
+Base directory: app
+Build command: npm run build:web
+Publish directory: app/dist
 ```
 
-Verify:
-
-```text
-https://shakti360-guardian-production.up.railway.app/
-https://shakti360-guardian-production.up.railway.app/api/health
-https://shakti360-guardian-production.up.railway.app/api/ready
-https://shakti360-guardian-production.up.railway.app/api/docs
-```
-
-Expected health response:
-
-```json
-{"status":"ok","service":"shakti360-api"}
-```
+It also disables the stale Next.js runtime and proxies `/api/*` to the Railway backend. This repository is an Expo application, not a Next.js application.
 
 ## API map
 
 | Capability | Endpoints |
 |---|---|
 | Authentication | `/auth/register`, `/auth/login`, `/auth/me`, `/auth/refresh`, `/auth/logout` |
-| Journeys | `/journeys`, `/journeys/{id}`, `/journeys/checkin`, `/journeys/safeword`, `/journeys/{id}/sos` |
-| Guardian Circle | `/guardians`, `/guardian-invites/{token}`, `/guardians/{id}/send-invite`, `/guardians/notify` |
+| Journeys | `/journeys`, `/journeys/{id}`, `/journeys/{id}/update`, `/journeys/checkin`, `/journeys/safeword`, `/journeys/{id}/sos` |
+| Guardian Circle | `/guardians`, `/guardians/{id}/update`, `/guardians/{id}/send-invite`, `/guardian-invites/{token}`, `/guardians/notify` |
 | SOS | `/sos`, `/sos/{id}/cancel` |
 | Nearby support | `/resources/nearby`, `/resources/nearby-v2` |
 | Safety agents | `/agents/cyber`, `/agents/privacy`, `/agents/context`, `/readiness`, `/battery/policy` |
 | Evidence and impact | `/incidents`, `/incidents/patterns`, `/feedback`, `/analytics/impact` |
 | Operations | `/health`, `/ready`, `/notifications/status`, `/docs` |
 
-In production, prefix every API path with `/api`, for example `/api/auth/login`.
+Prefix API routes with `/api` in production, for example `/api/auth/login`.
 
 ## Safety boundaries
 
-Shakti360 does not guarantee safety, predict crime, replace emergency services, or claim that a queued provider request reached a person. Nearby community data can be incomplete. Users retain control over escalation and should verify critical information through independent channels.
+Shakti360 does not guarantee safety, predict crime, replace emergency services, or claim that a queued provider request was delivered or opened. Community-maintained nearby-resource data can be incomplete. Users should verify critical information independently and contact local emergency services directly when immediate help is required.
 
 AI assists with interpretation and organization. High-impact escalation remains deterministic and human-controlled.
 
+## Bonus: ShaktiSafe Brief
 
-## Rote Playoffs: ShaktiSafe Brief
+This repository also contains a standalone Rote Play for a reusable **before-I-leave** check. It compares worldwide weather, modeled air quality, and supported U.S. National Weather Service alerts against the previous successful check for the same outing.
 
-The repository includes a standalone Rote Play candidate for the repetitive **before-I-leave** check: worldwide geocoding, weather, modeled air quality, supported US National Weather Service alerts, and changes since the previous check for the same outing.
+- [Published ShaktiSafe Brief Play](https://play.modiqo.ai/harshapriyag123/shaktisafe-brief@0.1.0)
+- [Hackathon submission package](./hackathon-submission/SUBMISSION.md)
+- [Rote implementation](./rote/shaktisafe-brief/)
 
-The package is isolated from the production web application under [`rote/shaktisafe-brief/`](./rote/shaktisafe-brief/). It does not change journey escalation, authentication, notifications, or the Railway runtime.
+## Built with purpose
 
-```bash
-cd rote/shaktisafe-brief
-python3 -m unittest -v
-python3 demo.py
-python3 shaktisafe.py run --city Chennai --country IN --location-id 1264527
-```
+Shakti360 was created as a social-impact safety project: technology should strengthen a person's choices and trusted relationships without demanding permanent surveillance in return.
 
-See the [Rote recording and Community submission handoff](./rote/shaktisafe-brief/ROTE_HANDOFF.md). The repository code is not itself a hackathon submission; the verified Play must be published to **Community**.
+If this project resonates with you, try the live demo, share feedback, or open an issue.
 
-## Published Rote Play
+<div align="center">
 
-[ShaktiSafe Brief — What changed before I leave? (Community, pinned 0.1.0)](https://play.modiqo.ai/harshapriyag123/shaktisafe-brief@0.1.0) is now published. See the [hackathon submission package](./hackathon-submission/SUBMISSION.md) for the demo, evidence, and limitations; earlier candidate-status notes above are historical.
+**AI assists. You decide.**
+
+</div>
