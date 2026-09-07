@@ -5,6 +5,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # This project is Expo, not Next.js. The existing Netlify project still has
+  # the legacy Next.js runtime enabled in its dashboard.
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
 # Keep API requests same-origin on Netlify while Railway hosts FastAPI.
 [[redirects]]
