@@ -1,11 +1,12 @@
 from fastapi.testclient import TestClient
 from uuid import uuid4
-from app.main import app, guardians, sos_sessions
+from app.main import app, guardians, journeys, sos_sessions
 
 client = TestClient(app)
 
 def setup_function():
     guardians.clear()
+    journeys.clear()
     sos_sessions.clear()
 
 def signed_in_client():
@@ -53,6 +54,20 @@ def test_battery_policy_endpoint_stops_completed_tracking():
     response = client.post("/battery/policy", json={"battery_level": 80, "journey_state": "completed"})
     assert response.status_code == 200
     assert response.json()["tracking_enabled"] is False
+
+def test_active_journey_eta_and_battery_can_be_updated():
+    created = client.post("/journeys", json={"origin": "Library", "destination": "Home", "eta_minutes": 10, "battery_percent": 80}).json()
+    response = client.post(f"/journeys/{created['id']}/update", json={"eta_minutes": 25, "battery_percent": 42})
+    assert response.status_code == 200
+    assert response.json()["battery_percent"] == 42
+    assert response.json()["expected_arrival"] != created["expected_arrival"]
+
+def test_guardian_contact_details_can_be_updated():
+    session = signed_in_client()
+    guardian = session.post("/guardians", json={"name": "Maya", "phone": "+15551234567"}).json()
+    response = session.post(f"/guardians/{guardian['id']}/update", json={"name": "Maya", "phone": "+15557654321"})
+    assert response.status_code == 200
+    assert response.json()["phone"] == "+15557654321"
 
 def test_guardian_can_be_removed():
     session = signed_in_client()
