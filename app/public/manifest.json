@@ -6,16 +6,40 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#F4F7F4",
   "theme_color": "#0A4D3A",
   "prefer_related_applications": false,
-  "launch_handler": { "client_mode": "navigate-existing" },
-  "categories": ["lifestyle", "utilities"],
-  "icons": [{ "src": "/shakti360-icon.png", "sizes": "1536x1536", "type": "image/png", "purpose": "any maskable" }],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "categories": [
+    "lifestyle",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "/shakti360-icon.png",
+      "sizes": "1536x1536",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "shortcuts": [
-    { "name": "Start Safe Journey", "short_name": "Journey", "url": "/journey" },
-    { "name": "Nearby Support", "short_name": "Map", "url": "/resources" },
-    { "name": "Open SOS", "short_name": "SOS", "url": "/sos" }
+    {
+      "name": "Start Safe Journey",
+      "short_name": "Journey",
+      "url": "/journey"
+    },
+    {
+      "name": "Nearby Support",
+      "short_name": "Map",
+      "url": "/resources"
+    },
+    {
+      "name": "Open SOS",
+      "short_name": "SOS",
+      "url": "/sos"
+    }
   ]
 }

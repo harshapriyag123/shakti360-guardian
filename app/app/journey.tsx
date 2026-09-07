@@ -7,6 +7,27 @@ import { queueNonSensitiveEvent, readLocal, removeLocal, storageKeys, writeLocal
 
 type Journey = { id: string; origin: string; destination: string; started_at: string; expected_arrival: string; battery_percent: number; power_mode: string; missed_checkins: number; escalation_level: string; active: boolean };
 type BatteryPolicy = { desired_accuracy: string; time_interval_s: number; tracking_enabled: boolean; estimated_impact: string; reason: string; policy_version: string };
+type GuardianUpdateState = "sent" | "none" | "sign_in" | "failed";
+
+async function readBatteryPercent(): Promise<number> {
+  try {
+    const level = await Battery.getBatteryLevelAsync();
+    return Number.isFinite(level) && level >= 0 ? Math.round(level * 100) : 50;
+  } catch {
+    return 50;
+  }
+}
+
+async function sendGuardianUpdate(payload: Record<string, unknown>): Promise<GuardianUpdateState> {
+  try {
+    const result = await authPost<{ recipient_count: number }>("/guardians/notify", payload);
+    return result.recipient_count > 0 ? "sent" : "none";
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    return /sign in|session expired|security token/.test(message) ? "sign_in" : "failed";
+  }
+}
+
 export default function JourneyScreen() {
   const [origin, setOrigin] = useState("Campus library"); const [destination, setDestination] = useState("Home");
   const [journey, setJourney] = useState<Journey | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
@@ -15,8 +36,59 @@ export default function JourneyScreen() {
   useEffect(() => { readLocal<{ journey: Journey; batteryPolicy: BatteryPolicy | null }>(storageKeys.activeJourney).then(async saved => { if (saved?.journey.active) { try { const current = await get<Journey>(`/journeys/${encodeURIComponent(saved.journey.id)}`); setJourney(current); setBatteryPolicy(saved.batteryPolicy); setNotice("Active journey recovered and verified with Shakti360."); } catch { await removeLocal(storageKeys.activeJourney); setNotice("Your previous journey ended when the service restarted. Start a new journey to resume protection."); } } setRestored(true); }); }, []);
   useEffect(() => { if (!restored || !journey) return; if (journey.active) writeLocal(storageKeys.activeJourney, { journey, batteryPolicy }); else removeLocal(storageKeys.activeJourney); }, [journey, batteryPolicy, restored]);
   async function act(task: () => Promise<void>) { try { setBusy(true); setError(""); await task(); } catch (e) { const message = e instanceof Error ? e.message : "Something went wrong"; if (message.includes("Journey not found")) { await removeLocal(storageKeys.activeJourney); setJourney(null); setBatteryPolicy(null); setNotice("This journey is no longer active on the server. Start a new journey to continue."); } else setError(message); } finally { setBusy(false); } }
-  const start = () => act(async () => { const level = await Battery.getBatteryLevelAsync(); const battery = level < 0 ? 50 : Math.round(level * 100); const [data, policy] = await Promise.all([post<Journey>("/journeys", { origin: origin.trim(), destination: destination.trim(), eta_minutes: 10, battery_percent: battery, trusted_contacts: ["Trusted Contact"] }), post<BatteryPolicy>("/battery/policy", { battery_level: battery, charging: false, movement_state: "moving", journey_state: "active", risk_state: "normal", time_since_location_s: 0, distance_moved_m: 0 })]); await authPost("/guardians/notify", { event: "journey_started", journey_id: data.id, message: `Journey started from ${data.origin} to ${data.destination}. Expected arrival ${new Date(data.expected_arrival).toLocaleTimeString()}.` }); setJourney(data); setBatteryPolicy(policy); setNotice("Journey protection is active. Guardian notifications were submitted through your configured providers."); });
-  const checkin = (arrived: boolean) => act(async () => { if (!journey) return; const data = await post<{ journey: Journey }>("/journeys/checkin", { journey_id: journey.id, arrived }); await authPost("/guardians/notify", { event: arrived ? "journey_completed" : "missed_checkin", journey_id: journey.id }); setJourney(data.journey); if (arrived) { const completedAt = new Date().toISOString(); const receipts = await readLocal<any[]>(storageKeys.privacyReceipts) ?? []; receipts.unshift({ id: `PR-${journey.id.slice(0, 8).toUpperCase()}`, journeyId: journey.id, purpose: "Safe Journey", startedAt: journey.started_at, completedAt, sharingStoppedAt: completedAt, sharedWith: ["Configured Guardian Circle"], precision: "No location points collected in this demo session", guardianTokenStatus: "No guardian location token created", retention: "Journey session remains in backend memory until server restart", createdAt: completedAt }); await writeLocal(storageKeys.privacyReceipts, receipts.slice(0, 25)); await removeLocal(storageKeys.activeJourney); await queueNonSensitiveEvent("journey.completed"); } setNotice(arrived ? "You’re marked safe. Guardians were updated and temporary monitoring ended." : `Safety protocol advanced to ${data.journey.escalation_level.replaceAll("_", " ")}; guardian alerts were submitted.`); });
+  const start = () => act(async () => {
+    const battery = await readBatteryPercent();
+    const data = await post<Journey>("/journeys", { origin: origin.trim(), destination: destination.trim(), eta_minutes: 10, battery_percent: battery, trusted_contacts: ["Trusted Contact"] });
+    setJourney(data);
+
+    let policy: BatteryPolicy | null = null;
+    try {
+      policy = await post<BatteryPolicy>("/battery/policy", { battery_level: battery, charging: false, movement_state: "moving", journey_state: "active", risk_state: "normal", time_since_location_s: 0, distance_moved_m: 0 });
+    } catch {
+      // Journey protection remains active even if optional battery guidance is unavailable.
+    }
+    setBatteryPolicy(policy);
+
+    const notification = await sendGuardianUpdate({ event: "journey_started", journey_id: data.id, message: "Journey started from " + data.origin + " to " + data.destination + ". Expected arrival " + new Date(data.expected_arrival).toLocaleTimeString() + "." });
+    const policyNote = policy ? "" : " Battery guidance is temporarily unavailable, so the balanced fallback is shown.";
+    const notificationNote = notification === "sent"
+      ? " Guardian notifications were submitted through your configured providers."
+      : notification === "none"
+        ? " Add a Guardian Circle contact to receive future updates."
+        : notification === "sign_in"
+          ? " This preview works without an account; sign in to notify guardians."
+          : " The journey is active, but guardian notifications could not be submitted.";
+    setNotice("Journey protection is active." + policyNote + notificationNote);
+  });
+
+  const checkin = (arrived: boolean) => act(async () => {
+    if (!journey) return;
+    const data = await post<{ journey: Journey }>("/journeys/checkin", { journey_id: journey.id, arrived });
+    setJourney(data.journey);
+
+    if (arrived) {
+      const completedAt = new Date().toISOString();
+      const receipts = await readLocal<any[]>(storageKeys.privacyReceipts) ?? [];
+      receipts.unshift({ id: "PR-" + journey.id.slice(0, 8).toUpperCase(), journeyId: journey.id, purpose: "Safe Journey", startedAt: journey.started_at, completedAt, sharingStoppedAt: completedAt, sharedWith: ["Configured Guardian Circle"], precision: "No location points collected in this demo session", guardianTokenStatus: "No guardian location token created", retention: "Journey session remains in backend memory until server restart", createdAt: completedAt });
+      await writeLocal(storageKeys.privacyReceipts, receipts.slice(0, 25));
+      await removeLocal(storageKeys.activeJourney);
+      await queueNonSensitiveEvent("journey.completed");
+    }
+
+    const notification = await sendGuardianUpdate({ event: arrived ? "journey_completed" : "missed_checkin", journey_id: journey.id });
+    const notificationNote = notification === "sent"
+      ? " Guardian updates were submitted."
+      : notification === "none"
+        ? " No Guardian Circle contact is configured."
+        : notification === "sign_in"
+          ? " Sign in to notify guardians."
+          : " Guardian updates could not be submitted.";
+    const status = arrived
+      ? "You’re marked safe and temporary monitoring ended."
+      : "Safety protocol advanced to " + data.journey.escalation_level.replaceAll("_", " ") + ".";
+    setNotice(status + notificationNote);
+  });
+
   const safeword = () => act(async () => { if (!journey) return; const data = await post<any>("/journeys/safeword", { journey_id: journey.id, phrase: "blue notebook" }); if (data.matched) { setJourney({ ...journey, escalation_level: data.decision.escalation_level }); setNotice("SafeWord recognized. Trusted Circle workflow activated."); } });
 
   return <Screen><Eyebrow>JOURNEY GUARDIAN</Eyebrow><Title subtitle="Timed, battery-aware protection that stays in your control.">Plan your safe arrival</Title>

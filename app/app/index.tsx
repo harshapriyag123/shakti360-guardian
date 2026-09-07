@@ -49,7 +49,7 @@ function Dashboard() {
       <Link href="/journey" asChild><Pressable style={{ backgroundColor: colors.lime, borderRadius: 16, padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 16 }}>Start a safe journey</Text><Ionicons name="arrow-forward" size={20} color={colors.ink} /></Pressable></Link>
       <Text style={{ color: "#AFCBC0", fontSize: 12 }}>Private by design • Temporary location session</Text>
     </Card>
-    {error ? <ErrorBanner message="Start the FastAPI backend on port 8000 to enable live protection and metrics." retry={load} /> : null}
+    {error ? <ErrorBanner message="Live protection is temporarily unavailable. Offline tools still work; reconnect and try again." retry={load} /> : null}
     <View style={{ gap: 10 }}><Title subtitle="Simple tools for the moments that matter">Your safety toolkit</Title>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>{tools.map(item => <Link key={item.href} href={item.href as any} asChild><Pressable style={({ pressed }) => ({ width: "48%", minWidth: 150, flexGrow: 1, backgroundColor: "white", borderWidth: 1, borderColor: colors.border, borderRadius: 20, padding: 16, gap: 11, opacity: pressed ? .7 : 1 })}><View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: item.color, alignItems: "center", justifyContent: "center" }}><Ionicons name={item.icon} size={22} color={colors.primaryDark} /></View><Text style={{ fontWeight: "900", fontSize: 16, color: colors.ink }}>{item.title}</Text><Text style={{ color: colors.muted, lineHeight: 19 }}>{item.copy}</Text></Pressable></Link>)}</View>
     </View>
