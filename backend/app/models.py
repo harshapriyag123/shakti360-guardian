@@ -23,6 +23,10 @@ class JourneyState(BaseModel):
     missed_checkins: int = 0
     active: bool = True
 
+class JourneyUpdate(BaseModel):
+    eta_minutes: Optional[int] = Field(default=None, ge=1, le=240)
+    battery_percent: Optional[int] = Field(default=None, ge=0, le=100)
+
 class CheckinRequest(BaseModel):
     journey_id: str
     arrived: bool = False

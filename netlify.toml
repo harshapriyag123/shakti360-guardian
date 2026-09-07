@@ -1,0 +1,23 @@
+[build]
+  base = "app"
+  command = "npm run build:web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # This project is Expo, not Next.js. The existing Netlify project still has
+  # the legacy Next.js runtime enabled in its dashboard.
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+
+# Keep API requests same-origin on Netlify while Railway hosts FastAPI.
+[[redirects]]
+  from = "/api/*"
+  to = "https://shakti360-guardian-production.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+# Expo Router static routes need a fallback for direct browser visits.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

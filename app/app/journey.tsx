@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import * as Battery from "expo-battery";
 import { authPost, get, post } from "../lib/api";
 import { Action, Card, colors, ErrorBanner, Eyebrow, Field, Loading, Metric, Pill, Screen, Title } from "../lib/ui";
@@ -9,12 +9,12 @@ type Journey = { id: string; origin: string; destination: string; started_at: st
 type BatteryPolicy = { desired_accuracy: string; time_interval_s: number; tracking_enabled: boolean; estimated_impact: string; reason: string; policy_version: string };
 type GuardianUpdateState = "sent" | "none" | "sign_in" | "failed";
 
-async function readBatteryPercent(): Promise<number> {
+async function readBatteryPercent(): Promise<number | null> {
   try {
     const level = await Battery.getBatteryLevelAsync();
-    return Number.isFinite(level) && level >= 0 ? Math.round(level * 100) : 50;
+    return Number.isFinite(level) && level >= 0 ? Math.round(level * 100) : null;
   } catch {
-    return 50;
+    return null;
   }
 }
 
@@ -30,15 +30,36 @@ async function sendGuardianUpdate(payload: Record<string, unknown>): Promise<Gua
 
 export default function JourneyScreen() {
   const [origin, setOrigin] = useState("Campus library"); const [destination, setDestination] = useState("Home");
+  const [etaMinutes, setEtaMinutes] = useState("10");
+  const [batteryInput, setBatteryInput] = useState("");
+  const [batteryAutomatic, setBatteryAutomatic] = useState(false);
   const [journey, setJourney] = useState<Journey | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   const [batteryPolicy, setBatteryPolicy] = useState<BatteryPolicy | null>(null);
   const [restored, setRestored] = useState(false);
+  useEffect(() => { readBatteryPercent().then(level => { if (level !== null) { setBatteryInput(String(level)); setBatteryAutomatic(true); } }); }, []);
   useEffect(() => { readLocal<{ journey: Journey; batteryPolicy: BatteryPolicy | null }>(storageKeys.activeJourney).then(async saved => { if (saved?.journey.active) { try { const current = await get<Journey>(`/journeys/${encodeURIComponent(saved.journey.id)}`); setJourney(current); setBatteryPolicy(saved.batteryPolicy); setNotice("Active journey recovered and verified with Shakti360."); } catch { await removeLocal(storageKeys.activeJourney); setNotice("Your previous journey ended when the service restarted. Start a new journey to resume protection."); } } setRestored(true); }); }, []);
   useEffect(() => { if (!restored || !journey) return; if (journey.active) writeLocal(storageKeys.activeJourney, { journey, batteryPolicy }); else removeLocal(storageKeys.activeJourney); }, [journey, batteryPolicy, restored]);
+  useEffect(() => {
+    if (!journey?.active || Platform.OS === "web") return;
+    const subscription = Battery.addBatteryLevelListener(({ batteryLevel }) => {
+      if (!Number.isFinite(batteryLevel) || batteryLevel < 0) return;
+      const percent = Math.round(batteryLevel * 100);
+      setBatteryInput(String(percent));
+      setBatteryAutomatic(true);
+      post<Journey>(`/journeys/${encodeURIComponent(journey.id)}/update`, { battery_percent: percent }).then(setJourney).catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [journey?.id, journey?.active]);
   async function act(task: () => Promise<void>) { try { setBusy(true); setError(""); await task(); } catch (e) { const message = e instanceof Error ? e.message : "Something went wrong"; if (message.includes("Journey not found")) { await removeLocal(storageKeys.activeJourney); setJourney(null); setBatteryPolicy(null); setNotice("This journey is no longer active on the server. Start a new journey to continue."); } else setError(message); } finally { setBusy(false); } }
   const start = () => act(async () => {
-    const battery = await readBatteryPercent();
-    const data = await post<Journey>("/journeys", { origin: origin.trim(), destination: destination.trim(), eta_minutes: 10, battery_percent: battery, trusted_contacts: ["Trusted Contact"] });
+    const detectedBattery = await readBatteryPercent();
+    const battery = detectedBattery ?? Number(batteryInput);
+    const eta = Number(etaMinutes);
+    if (!Number.isInteger(eta) || eta < 1 || eta > 240) throw new Error("ETA must be between 1 and 240 minutes.");
+    if (!Number.isInteger(battery) || battery < 0 || battery > 100) throw new Error("Enter your phone battery from 0 to 100%. iPhone Safari does not share it automatically.");
+    setBatteryInput(String(battery));
+    setBatteryAutomatic(detectedBattery !== null);
+    const data = await post<Journey>("/journeys", { origin: origin.trim(), destination: destination.trim(), eta_minutes: eta, battery_percent: battery, trusted_contacts: [] });
     setJourney(data);
 
     let policy: BatteryPolicy | null = null;
@@ -59,6 +80,18 @@ export default function JourneyScreen() {
           ? " This preview works without an account; sign in to notify guardians."
           : " The journey is active, but guardian notifications could not be submitted.";
     setNotice("Journey protection is active." + policyNote + notificationNote);
+  });
+
+  const saveJourneySettings = () => act(async () => {
+    if (!journey) return;
+    const eta = Number(etaMinutes);
+    const battery = Number(batteryInput || journey.battery_percent);
+    if (!Number.isInteger(eta) || eta < 1 || eta > 240) throw new Error("ETA must be between 1 and 240 minutes.");
+    if (!Number.isInteger(battery) || battery < 0 || battery > 100) throw new Error("Battery must be between 0 and 100%.");
+    const updated = await post<Journey>(`/journeys/${encodeURIComponent(journey.id)}/update`, { eta_minutes: eta, battery_percent: battery });
+    setJourney(updated);
+    setBatteryAutomatic(false);
+    setNotice("ETA and battery were updated.");
   });
 
   const checkin = (arrived: boolean) => act(async () => {
@@ -92,9 +125,9 @@ export default function JourneyScreen() {
   const safeword = () => act(async () => { if (!journey) return; const data = await post<any>("/journeys/safeword", { journey_id: journey.id, phrase: "blue notebook" }); if (data.matched) { setJourney({ ...journey, escalation_level: data.decision.escalation_level }); setNotice("SafeWord recognized. Trusted Circle workflow activated."); } });
 
   return <Screen><Eyebrow>JOURNEY GUARDIAN</Eyebrow><Title subtitle="Timed, battery-aware protection that stays in your control.">Plan your safe arrival</Title>
-    {!journey ? <Card><Field label="Starting point" value={origin} onChangeText={setOrigin} placeholder="Where are you now?" /><Field label="Destination" value={destination} onChangeText={setDestination} placeholder="Where are you going?" /><View style={{ flexDirection: "row", gap: 8 }}><Pill label="10 min ETA" /><Pill label="1 trusted contact" tone="gray" /></View><Action label="Start journey protection" icon="shield-checkmark" onPress={start} disabled={busy || !origin.trim() || !destination.trim()} /></Card> :
+    {!journey ? <Card><Field label="Starting point" value={origin} onChangeText={setOrigin} placeholder="Where are you now?" /><Field label="Destination" value={destination} onChangeText={setDestination} placeholder="Where are you going?" /><View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}><View style={{ flex: 1, minWidth: 145 }}><Field label="ETA (minutes)" value={etaMinutes} onChangeText={setEtaMinutes} keyboardType="number-pad" placeholder="10" /></View><View style={{ flex: 1, minWidth: 145 }}><Field label="Phone battery %" value={batteryInput} onChangeText={value => { setBatteryInput(value.replace(/\D/g, "")); setBatteryAutomatic(false); }} keyboardType="number-pad" placeholder="0–100" /></View></View><Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>{batteryAutomatic ? "Battery detected automatically." : Platform.OS === "web" ? "If your browser blocks battery access (including iPhone Safari), enter the percentage shown on your phone." : "Enter the current percentage if automatic detection is unavailable."}</Text><Action label="Start journey protection" icon="shield-checkmark" onPress={start} disabled={busy || !origin.trim() || !destination.trim() || !etaMinutes.trim() || !batteryInput.trim()} /></Card> :
     <><Card tone={journey.active ? "dark" : "mint"}><View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}><Pill label={journey.active ? "Journey active" : "Arrived safely"} /><Text style={{ color: journey.active ? "white" : colors.ink, fontWeight: "800" }}>{journey.power_mode} power</Text></View><Text style={{ color: journey.active ? "white" : colors.ink, fontSize: 24, fontWeight: "900" }}>{journey.origin} → {journey.destination}</Text><Text style={{ color: journey.active ? "#C9DED6" : colors.muted }}>Expected {new Date(journey.expected_arrival).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</Text><View style={{ flexDirection: "row", gap: 8 }}><Metric value={`${journey.battery_percent}%`} label="battery" /><Metric value={journey.missed_checkins} label="missed check-ins" /></View></Card>
-    {journey.active ? <><Card tone="mint"><View style={{ flexDirection: "row", justifyContent: "space-between" }}><View><Text style={{ color: colors.primaryDark, fontWeight: "900", fontSize: 17 }}>Battery Guardian</Text><Text style={{ color: colors.muted }}>Tracking mode: Adaptive</Text></View><Pill label={`${batteryPolicy?.estimated_impact ?? "low"} impact`} /></View><Text style={{ color: colors.muted, lineHeight: 20 }}>{batteryPolicy?.reason ?? "Adaptive sampling avoids continuous GPS polling."}</Text><Text style={{ color: colors.primaryDark, fontSize: 12 }}>Accuracy: {batteryPolicy?.desired_accuracy ?? "balanced"} • Next sample: {batteryPolicy?.time_interval_s ?? 180}s • Policy v{batteryPolicy?.policy_version ?? "1.0"}</Text></Card><Card><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>Quick check-in</Text><Text style={{ color: colors.muted, lineHeight: 21 }}>Your location is temporary and the escalation policy is deterministic.</Text><Action label="I arrived safely" icon="checkmark-circle" onPress={() => checkin(true)} disabled={busy} /><Action label="Demo missed check-in" icon="time" variant="secondary" onPress={() => checkin(false)} disabled={busy} /><Action label="Demo SafeWord" icon="notifications" variant="danger" onPress={safeword} disabled={busy} /></Card></> : <Action label="Start another journey" onPress={() => { setJourney(null); setNotice(""); setBatteryPolicy(null); }} />}</>}
+    {journey.active ? <><Card tone="mint"><View style={{ flexDirection: "row", justifyContent: "space-between" }}><View><Text style={{ color: colors.primaryDark, fontWeight: "900", fontSize: 17 }}>Battery Guardian</Text><Text style={{ color: colors.muted }}>Tracking mode: Adaptive</Text></View><Pill label={`${batteryPolicy?.estimated_impact ?? "low"} impact`} /></View><Text style={{ color: colors.muted, lineHeight: 20 }}>{batteryPolicy?.reason ?? "Adaptive sampling avoids continuous GPS polling."}</Text><Text style={{ color: colors.primaryDark, fontSize: 12 }}>Accuracy: {batteryPolicy?.desired_accuracy ?? "balanced"} • Next sample: {batteryPolicy?.time_interval_s ?? 180}s • Policy v{batteryPolicy?.policy_version ?? "1.0"}</Text></Card><Card><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>Edit active journey</Text><View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}><View style={{ flex: 1, minWidth: 145 }}><Field label="New ETA (minutes from now)" value={etaMinutes} onChangeText={setEtaMinutes} keyboardType="number-pad" /></View><View style={{ flex: 1, minWidth: 145 }}><Field label="Phone battery %" value={batteryInput || String(journey.battery_percent)} onChangeText={value => { setBatteryInput(value.replace(/\D/g, "")); setBatteryAutomatic(false); }} keyboardType="number-pad" /></View></View><Text style={{ color: colors.muted, fontSize: 12 }}>{batteryAutomatic ? "Battery is syncing automatically." : "Battery is manually entered on this device."}</Text><Action label="Save ETA and battery" icon="save" variant="secondary" onPress={saveJourneySettings} disabled={busy} /></Card><Card><Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>Quick check-in</Text><Text style={{ color: colors.muted, lineHeight: 21 }}>Your location is temporary and the escalation policy is deterministic.</Text><Action label="I arrived safely" icon="checkmark-circle" onPress={() => checkin(true)} disabled={busy} /><Action label="Demo missed check-in" icon="time" variant="secondary" onPress={() => checkin(false)} disabled={busy} /><Action label="Demo SafeWord" icon="notifications" variant="danger" onPress={safeword} disabled={busy} /></Card></> : <Action label="Start another journey" onPress={() => { setJourney(null); setNotice(""); setBatteryPolicy(null); }} />}</>}
     {busy ? <Loading label="Updating your protection…" /> : null}{notice ? <Card tone="mint"><Text style={{ color: colors.primaryDark, fontWeight: "800", lineHeight: 21 }}>{notice}</Text></Card> : null}{error ? <ErrorBanner message={error} /> : null}
     <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>Emergency escalation always presents options; it never contacts services without your explicit action.</Text>
   </Screen>;

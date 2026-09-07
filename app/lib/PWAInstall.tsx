@@ -145,7 +145,7 @@ export function PWAInstall() {
   const actionLabel = deferredPrompt
     ? "Install Shakti360 now"
     : client.device === "ios"
-      ? "Add to Home Screen"
+      ? "Show iPhone install steps"
       : client.device === "android"
         ? "Install on Android"
         : "Install on this computer";
@@ -174,6 +174,10 @@ export function PWAInstall() {
     </Pressable>
 
     {expanded ? <View style={{ gap: 9 }}>
+      {client.device === "ios" && !deferredPrompt ? <View style={{ gap: 8 }}>
+        {[["1", "Tap Safari’s Share button", "square-outline"], ["2", "Choose Add to Home Screen", "add-circle-outline"], ["3", "Tap Add", "checkmark-circle-outline"]].map(([number, label, icon]) => <View key={number} style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 13, padding: 10, backgroundColor: "white" }}><View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}><Text style={{ color: "white", fontWeight: "900" }}>{number}</Text></View><Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.primary} /><Text style={{ flex: 1, color: colors.ink, fontWeight: "800", fontSize: 14 }}>{label}</Text></View>)}
+        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>Apple requires this Share-menu action; websites cannot open the iPhone installation dialog automatically.</Text>
+      </View> : null}
       {notice ? <View style={{ backgroundColor: colors.mint, borderRadius: 13, padding: 12 }}>
         <Text accessibilityLiveRegion="polite" style={{ color: colors.primaryDark, fontSize: 13, lineHeight: 19, fontWeight: "700" }}>{notice}</Text>
       </View> : null}

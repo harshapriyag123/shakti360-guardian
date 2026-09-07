@@ -6,7 +6,7 @@ import secrets
 import os
 
 from .models import (
-    JourneyCreate, JourneyState, CheckinRequest, NearbyRequest,
+    JourneyCreate, JourneyState, JourneyUpdate, CheckinRequest, NearbyRequest,
     CyberRequest, IncidentCreate, PrivacyRequest, BatteryPolicyRequest
 )
 from .agents import (
@@ -92,6 +92,20 @@ def get_journey(journey_id: str):
     if journey_id not in journeys:
         raise HTTPException(404, "Journey not found")
     return journeys[journey_id]
+
+@app.post("/journeys/{journey_id}/update", response_model=JourneyState)
+def update_journey(journey_id: str, req: JourneyUpdate):
+    if journey_id not in journeys:
+        raise HTTPException(404, "Journey not found")
+    journey = journeys[journey_id]
+    if not journey["active"]:
+        raise HTTPException(409, "Only an active journey can be updated")
+    if req.eta_minutes is not None:
+        journey["expected_arrival"] = datetime.now(timezone.utc) + timedelta(minutes=req.eta_minutes)
+    if req.battery_percent is not None:
+        journey["battery_percent"] = req.battery_percent
+        journey["power_mode"] = battery_guardian(req.battery_percent)["mode"]
+    return journey
 
 @app.post("/journeys/checkin")
 def checkin(req: CheckinRequest):
@@ -304,6 +318,16 @@ async def deliver_guardian_invite(guardian_id: str, req: GuardianInviteSend, use
         guardian["status"] = "invite sent"
     track("guardian.invite_delivery", {"guardian_id": guardian_id, "channels": req.channels, "statuses": [r["status"] for r in results]})
     return {"guardian_id": guardian_id, "invite_url": invite_url(guardian["invite_token"]), "deliveries": results}
+
+@app.post("/guardians/{guardian_id}/update")
+def update_guardian(guardian_id: str, req: GuardianCreate, user: User = Depends(current_user), csrf_cookie: str | None = Cookie(None, alias="shakti_csrf"), csrf_header: str | None = Header(None, alias="X-CSRF-Token")):
+    require_csrf(csrf_cookie, csrf_header)
+    guardian = guardians.get(guardian_id)
+    if not guardian or guardian["owner_user_id"] != user.id:
+        raise HTTPException(404, "Guardian not found")
+    guardian.update(req.model_dump(mode="json"))
+    track("guardian.updated", {"guardian_id": guardian_id})
+    return guardian
 
 @app.delete("/guardians/{guardian_id}")
 def delete_guardian(guardian_id: str, user: User = Depends(current_user), csrf_cookie: str | None = Cookie(None, alias="shakti_csrf"), csrf_header: str | None = Header(None, alias="X-CSRF-Token")):
