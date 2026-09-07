@@ -21,6 +21,7 @@ export default function Layout() {
     <Tabs.Screen name="resources" options={{ title: "Map" }} />
     <Tabs.Screen name="guardians" options={{ title: "Guardians" }} />
     <Tabs.Screen name="toolkit" options={{ title: "Toolkit" }} />
-    {['cyber','evidence','impact','patterns','privacy','receipts','readiness','sos','exit','fake-call','judge','register','login','profile','explore','guardian-invite'].map(name => <Tabs.Screen key={name} name={name} options={{ href: null }} />)}
+    <Tabs.Screen name="exit" options={{ href: null, headerShown: false, tabBarStyle: { display: "none" } }} />
+    {['cyber','evidence','impact','patterns','privacy','receipts','readiness','sos','fake-call','judge','register','login','profile','explore','guardian-invite'].map(name => <Tabs.Screen key={name} name={name} options={{ href: null }} />)}
   </Tabs></AppErrorBoundary>;
 }

@@ -159,10 +159,15 @@ def privacy(req: PrivacyRequest):
         pass
     return privacy_guardian(req.model_dump())
 
+def public_incident(record: dict):
+    return {key: value for key, value in record.items() if key != "owner_user_id"}
+
 @app.post("/incidents")
-def create_incident(req: IncidentCreate):
+def create_incident(req: IncidentCreate, user: User = Depends(current_user), csrf_cookie: str | None = Cookie(None, alias="shakti_csrf"), csrf_header: str | None = Header(None, alias="X-CSRF-Token")):
+    require_csrf(csrf_cookie, csrf_header)
     record = {
         "id": str(uuid4()),
+        "owner_user_id": user.id,
         **req.model_dump(),
         "created_at": datetime.now(timezone.utc)
     }
@@ -174,11 +179,11 @@ def create_incident(req: IncidentCreate):
         track("incident.created", {"incident_id": record["id"]})
     except NameError:
         pass
-    return record
+    return public_incident(record)
 
 @app.get("/incidents")
-def list_incidents():
-    return {"incidents": incidents}
+def list_incidents(user: User = Depends(current_user)):
+    return {"incidents": [public_incident(record) for record in incidents if record.get("owner_user_id") == user.id]}
 
 # ---- Pro / deeper agentic endpoints ----
 from .models import SafeWordRequest, ContextRequest, ReadinessRequest, FeedbackRequest
@@ -227,12 +232,14 @@ def safeword(req: SafeWordRequest):
     return {"matched": True, "decision": decision.__dict__, "deliveries": deliveries}
 
 @app.get("/incidents/patterns")
-def patterns():
+def patterns(user: User = Depends(current_user)):
     normalized = []
-    for i in incidents:
+    for incident in incidents:
+        if incident.get("owner_user_id") != user.id:
+            continue
         normalized.append({
-            "description": i.get("description", ""),
-            "tags": i.get("tags", []),
+            "description": incident.get("description", ""),
+            "tags": incident.get("tags", []),
         })
     return pattern_agent.run(normalized)
 
